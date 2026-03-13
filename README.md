@@ -1,105 +1,133 @@
-# New Nx Repository
+# Coros
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+> The open-source company OS — HR, employees, documents and projects in one place.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
+![Status](https://img.shields.io/badge/status-active%20development-orange)
+![Stack](https://img.shields.io/badge/stack-React%20%2B%20NestJS%20%2B%20PostgreSQL-informational)
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
-## Try the full Nx platform
-🚀 If you haven't connected to Nx Cloud yet, [complete your setup here](https://cloud.nx.app/setup/connect-workspace/guide). Get faster builds with remote caching, distributed task execution, and self-healing CI. [See how your workspace can benefit](#nx-cloud).
-## Generate a library
+---
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+## What is Coros?
+
+Coros is an open-source company operating system built for small and medium businesses. Instead of juggling multiple disconnected tools, Coros brings HR, employee management, documents, projects and tasks into a single unified platform.
+
+Self-host it on your own infrastructure, or use the cloud-hosted version — same product, your choice.
+
+---
+
+## Features
+
+- 👥 **HR Management** — departments, positions, leave requests
+- 🧑‍💼 **Employee Profiles** — contracts, status, history
+- 📁 **Document Management** — upload, assign, organize
+- 📋 **Projects & Tasks** — kanban board, assignments, priorities
+- 🔐 **Role-based Access Control** — Admin, Manager, Employee
+- 🏢 **Multi-tenant** — manage multiple organizations
+- 🐳 **Self-host in minutes** — single Docker Compose command
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React Router v7 + shadcn/ui + Tailwind CSS |
+| Backend | NestJS + TypeORM |
+| Database | PostgreSQL |
+| Monorepo | NX Workspace + pnpm |
+| Auth | JWT + Refresh Tokens |
+| Storage | Local (dev) → S3/Cloudflare R2 (prod) |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm
+- Docker + Docker Compose
+
+### Self-host with Docker
+
+```bash
+# Clone the repository
+git clone https://github.com/coros-hq/coros.git
+cd coros
+
+# Start the database
+docker-compose up -d
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+
+# Run both apps
+npx nx run-many --target=serve --projects=web,api
 ```
 
-## Run tasks
+Visit `http://localhost:5173` for the web app and `http://localhost:3000/api` for the API.
 
-To build the library use:
+---
 
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
+## Project Structure
 
 ```
-npx nx release
+coros/
+├── apps/
+│   ├── web/               ← React Router v7 frontend
+│   └── api/               ← NestJS backend
+├── libs/
+│   └── shared-types/      ← shared DTOs and interfaces
+├── docker-compose.yml
+└── nx.json
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+---
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Roadmap
 
-## Keep TypeScript project references up to date
+- [x] Project setup and architecture
+- [ ] Auth system (JWT + RBAC)
+- [ ] HR and Employee management
+- [ ] Document management
+- [ ] Projects and Tasks
+- [ ] Dashboard and notifications
+- [ ] Production Docker setup
+- [ ] Landing page and public launch
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+---
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+## Contributing
 
-```sh
-npx nx sync
-```
+Coros is built in public and contributions are welcome. The project is in active early development — the best way to contribute right now is to try it out, open issues, and share feedback.
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
 
-```sh
-npx nx sync:check
-```
+---
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+## License
 
-## Nx Cloud
+Coros is licensed under the [AGPL-3.0 License](LICENSE). You are free to self-host and modify it. If you offer it as a hosted service, you must open source your modifications.
 
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+---
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Stay in the Loop
 
-### Set up CI (non-Github Actions CI)
+This project is being built in public. Follow the journey:
 
-**Note:** This is only required if your CI provider is not GitHub Actions.
+- 🐦 Twitter/X — [@corosapp](#)
+- ⭐ Star the repo to follow progress
+- 💬 Open an issue to share feedback or ideas
 
-Use the following command to configure a CI workflow for your workspace:
+---
 
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+<p align="center">Built with ❤️ and shipped in public</p>
