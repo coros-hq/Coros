@@ -3,9 +3,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from '../auth/auth.module';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { User } from '../user/entities/user.entity';
+import { Organization } from '../organization/entities/organization.entity';
+import { RefreshToken } from '../auth/entities/refreshToken.entity';
 
 @Module({
   imports: [
+    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.local',
@@ -20,12 +28,23 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         username: configService.get<string>('POSTGRES_USER'),
         password: configService.get<string>('POSTGRES_PASSWORD'),
         database: configService.get<string>('POSTGRES_DB'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        entities: [User, Organization, RefreshToken],
         synchronize: true,
-      })
-    })
+      }),
+    }),
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
 export class AppModule {}

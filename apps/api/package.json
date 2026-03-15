@@ -81,8 +81,16 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@org/shared-types": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
@@ -90,6 +98,13 @@
     "typeorm": "^0.3.28"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.0.0"
+    "@nestjs/testing": "^11.0.0",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1"
   }
 }
