@@ -10,10 +10,13 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { User } from '../user/entities/user.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { RefreshToken } from '../auth/entities/refreshToken.entity';
+import { Industry } from '../industry/entities/industry.entity';
+import { IndustryModule } from '../industry/industry.module';
 
 @Module({
   imports: [
     AuthModule,
+    IndustryModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.local',
@@ -28,7 +31,7 @@ import { RefreshToken } from '../auth/entities/refreshToken.entity';
         username: configService.get<string>('POSTGRES_USER'),
         password: configService.get<string>('POSTGRES_PASSWORD'),
         database: configService.get<string>('POSTGRES_DB'),
-        entities: [User, Organization, RefreshToken],
+        entities: [User, Organization, RefreshToken, Industry],
         synchronize: true,
       }),
     }),

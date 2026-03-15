@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { User } from '../user/entities/user.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { RefreshToken } from './entities/refreshToken.entity';
+import { IndustryModule } from '../industry/industry.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { LocalStrategy } from './strategies/local.strategy';
@@ -14,6 +15,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Organization, RefreshToken]),
+    IndustryModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

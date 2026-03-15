@@ -16,18 +16,20 @@ import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { OrganizationSize, Role } from '@org/shared-types';
 import { randomBytes } from 'crypto';
+import { IndustryService } from '../industry/industry.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>, 
+    private userRepository: Repository<User>,
     @InjectRepository(Organization)
     private organizationRepository: Repository<Organization>,
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private industryService: IndustryService,
   ) {}
 
   async findbByEmail(email: string) {
@@ -95,6 +97,15 @@ export class AuthService {
       throw new BadRequestException('User already exists');
     }
 
+    if (registerDto.industryId) {
+      const industryExists = await this.industryService.exists(
+        registerDto.industryId,
+      );
+      if (!industryExists) {
+        throw new BadRequestException('Invalid industry');
+      }
+    }
+
     const slug = this.slugify(registerDto.organizationName);
 
     const organization = this.organizationRepository.create({
@@ -104,6 +115,7 @@ export class AuthService {
       website: '',
       size: registerDto.size || OrganizationSize.SMALL,
       isActive: true,
+      industryId: registerDto.industryId ?? null,
     });
     const savedOrganization = await this.organizationRepository.save(organization);
 

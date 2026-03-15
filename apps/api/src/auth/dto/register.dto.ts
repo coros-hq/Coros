@@ -1,5 +1,12 @@
-import { OrganizationSize } from "@org/shared-types";
-import { IsEmail, IsEnum, IsString, MinLength } from "class-validator";
+import { OrganizationSize } from '@org/shared-types';
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -7,6 +14,10 @@ export class RegisterDto {
 
   @IsEnum(OrganizationSize)
   size!: OrganizationSize;
+
+  @IsOptional()
+  @IsUUID()
+  industryId?: string;
 
   @IsEmail()
   email!: string;
