@@ -12,11 +12,31 @@ import { Organization } from '../organization/entities/organization.entity';
 import { RefreshToken } from '../auth/entities/refreshToken.entity';
 import { Industry } from '../industry/entities/industry.entity';
 import { IndustryModule } from '../industry/industry.module';
+import { ContractModule } from '../contract/contract.module';
+import { LeaveBalanceModule } from '../leave-balance/leave-balance.module';
+import { LeaveRequestModule } from '../leave-request/leave-request.module';
+import { Employee } from '../employee/entities/employee.entity';
+import { LeaveRequest } from '../leave-request/entities/leave-request.entity';
+import { Contract } from '../contract/entities/contract.entity';
+import { LeaveBalance } from '../leave-balance/entities/leave-balance.entity';
+import { Department } from '../department/entities/department.entity';
+import { DepartmentModule } from '../department/department.module';
+import { Position } from '../position/entities/position.entity';
+import { UsersModule } from '../user/user.module';
+import { PositionModule } from '../position/position.module';
+import { EmployeeModule } from '../employee/employee.module';
 
 @Module({
   imports: [
     AuthModule,
     IndustryModule,
+    ContractModule,
+    LeaveBalanceModule,
+    LeaveRequestModule,
+    UsersModule,
+    DepartmentModule,
+    PositionModule,
+    EmployeeModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.local',
@@ -31,7 +51,18 @@ import { IndustryModule } from '../industry/industry.module';
         username: configService.get<string>('POSTGRES_USER'),
         password: configService.get<string>('POSTGRES_PASSWORD'),
         database: configService.get<string>('POSTGRES_DB'),
-        entities: [User, Organization, RefreshToken, Industry],
+        entities: [
+          User,
+          Organization,
+          RefreshToken,
+          Industry,
+          Employee,
+          LeaveRequest,
+          Contract,
+          LeaveBalance,
+          Department,
+          Position,
+        ],
         synchronize: true,
       }),
     }),
