@@ -3,6 +3,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../common/base.entity';
 import { User } from '../../user/entities/user.entity';
 import { Industry } from '../../industry/entities/industry.entity';
+import { Department } from '../../department/entities/department.entity';
 
 @Entity('organization')
 export class Organization extends BaseEntity {
@@ -35,4 +36,7 @@ export class Organization extends BaseEntity {
 
   @OneToMany(() => User, (user) => user.organization)
   users!: User[];
+
+  @OneToMany(() => Department, (department) => department.organization)
+  departments!: Department[];
 }
