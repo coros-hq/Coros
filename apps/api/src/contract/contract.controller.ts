@@ -21,28 +21,28 @@ export class ContractController {
 
   @Post('create')
   @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   async createContract(@Body() dto: NewContractDto) {
     return await this.contractService.createContract(dto);
   }
 
   @Get('employee/:employeeId')
   @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
   async getContractByEmployee(@Param('employeeId') employeeId: string) {
     return await this.contractService.findByEmployeeId(employeeId);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
   async getContract(@Param('id') id: string) {
     return await this.contractService.findOne(id);
   }
 
   @Put('update/:id')
   @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   async updateContract(
     @Param('id') id: string,
     @Body() dto: UpdateContractDto
@@ -52,7 +52,7 @@ export class ContractController {
 
   @Delete('delete/:id')
   @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   async deleteContract(@Param('id') id: string) {
     await this.contractService.deleteContract(id);
     return { message: 'Contract deleted successfully' };

@@ -25,6 +25,7 @@ import { Position } from '../position/entities/position.entity';
 import { UsersModule } from '../user/user.module';
 import { PositionModule } from '../position/position.module';
 import { EmployeeModule } from '../employee/employee.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { EmployeeModule } from '../employee/employee.module';
     DepartmentModule,
     PositionModule,
     EmployeeModule,
+    StorageModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.local',
