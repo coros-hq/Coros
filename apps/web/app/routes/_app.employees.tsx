@@ -244,7 +244,7 @@ export default function EmployeesPage() {
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600"
+                      className="text-destructive focus:text-destructive"
                       onSelect={(e) => {
                         e.preventDefault();
                         if (
