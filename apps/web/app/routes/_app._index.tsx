@@ -115,7 +115,7 @@ function StatCard({
   icon: typeof Users;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4 shadow-sm transition-colors hover:border-border">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm transition-colors">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
@@ -133,7 +133,7 @@ function StatCard({
 function CellSecondary({ children }: { children: string }) {
   const empty = children === '—';
   return (
-    <span className={cn('text-sm', empty ? 'text-muted-foreground' : 'text-muted-foreground')}>{children}</span>
+    <span className={cn('text-sm', empty ? 'text-muted-foreground' : 'text-foreground')}>{children}</span>
   );
 }
 
