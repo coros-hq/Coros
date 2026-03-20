@@ -202,7 +202,7 @@ export function DataTable<TData>({
         </p>
         <div className="flex items-center gap-2">
           <Button
-            className="h-9 min-w-[5.5rem] border-border px-3 text-sm font-medium text-foreground hover:bg-accent"
+            className="h-9 min-w-[5.5rem] px-3 text-sm font-medium"
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
             variant="outline"
@@ -213,7 +213,7 @@ export function DataTable<TData>({
             Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
           </span>
           <Button
-            className="h-9 min-w-[5.5rem] border-border px-3 text-sm font-medium text-foreground hover:bg-accent"
+            className="h-9 min-w-[5.5rem] px-3 text-sm font-medium"
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
             variant="outline"
