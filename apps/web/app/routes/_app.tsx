@@ -192,9 +192,9 @@ export default function AppLayout() {
           <SidebarTrigger className="-ml-1" />
           <div className="flex flex-1 items-center gap-3" id="page-header" />
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto bg-background text-sm text-foreground">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-background text-sm text-foreground">
           <Outlet />
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
