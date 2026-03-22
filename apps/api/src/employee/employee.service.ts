@@ -203,7 +203,7 @@ export class EmployeeService {
   async getEmployees(organizationId: string): Promise<Employee[]> {
     const employees = await this.employeeRepository.find({
       where: { organizationId },
-      relations: ['user'],
+      relations: ['user', 'department', 'position'],
     });
     return employees.map((e) => this.stripUserPassword(e));
   }

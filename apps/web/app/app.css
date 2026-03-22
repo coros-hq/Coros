@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  :root {
+    /* App shell (lavender); use var() in @layer base because @apply bg-shell can fail if Tailwind config isn’t resolved */
+    --shell: #f5f3ff;
+    --background: 0 0% 100%;
+    --foreground: 259 73% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 259 73% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 259 73% 15%;
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 259 100% 97%;
+    --secondary-foreground: 259 73% 15%;
+    --muted: 259 100% 97%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 259 100% 95%;
+    --accent-foreground: 263 70% 58%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 259 100% 95%;
+    --input: 259 100% 95%;
+    --ring: 263 70% 58%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    --radius: 0.5rem;
+    --radius-md: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--shell);
+    @apply font-sans text-base text-foreground;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-purple-light;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-purple-bright/30;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-purple ring-offset-2 ring-offset-canvas;
+  }
+
+  ::selection {
+    @apply bg-purple-light text-foreground;
+  }
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}

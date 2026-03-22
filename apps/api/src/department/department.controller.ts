@@ -35,7 +35,7 @@ export class DepartmentController {
 
     @Get('all')
     @UseGuards(JwtAuthGuard)
-    @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+    @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
     async getOrganizationDepartments(@CurrentUser('organizationId') organizationId: string): Promise<Department[]> {
         return this.departmentService.getOrganizationDepartments(organizationId);
     }

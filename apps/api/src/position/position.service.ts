@@ -15,7 +15,6 @@ export class PositionService {
     departmentId: string,
     position: NewPositionDto
   ): Promise<Position> {
-    console.log(departmentId)
     const newPosition = this.positionRepository.create({
       name: position.name,
       description: position.description,

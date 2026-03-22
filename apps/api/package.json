@@ -83,6 +83,7 @@
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.0",
     "@nestjs/jwt": "^11.0.2",
+    "@nestjs/mapped-types": "^2.0.5",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
@@ -107,7 +108,8 @@
     "@types/multer": "^1.4.12",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1"
+    "class-transformer": "0.5.1",
+    "class-validator": "0.14.1",
+    "typed-assert": "^1.0.9"
   }
 }

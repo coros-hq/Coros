@@ -113,7 +113,7 @@ export class AuthService {
       slug,
       logo: '',
       website: '',
-      size: registerDto.size || OrganizationSize.SMALL,
+      size: registerDto.size || OrganizationSize.XS,
       isActive: true,
       industryId: registerDto.industryId ?? null,
     });

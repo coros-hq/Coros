@@ -6,9 +6,17 @@
     "docker:up": "docker compose -f apps/api/docker-compose.yml up -d",
     "docker:down": "docker compose -f apps/api/docker-compose.yml down",
     "docker:reset": "docker compose -f apps/api/docker-compose.yml down -v",
-    "api:serve": "nx run @org/api:serve:development"
+    "api:serve": "nx run @org/api:serve:development",
+    "web:dev": "nx run @org/web:dev:development",
+    "web": "nx run @org/web:serve:development"
   },
   "private": true,
+  "pnpm": {
+    "publicHoistPattern": [
+      "typed-assert",
+      "webpack-subresource-integrity"
+    ]
+  },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
     "@nestjs/schematics": "^11.0.0",
@@ -62,6 +70,7 @@
     "react-dom": "^19.0.0",
     "react-router": "^7.12.0",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.8.0"
+    "rxjs": "^7.8.0",
+    "typed-assert": "^1.0.9"
   }
 }
