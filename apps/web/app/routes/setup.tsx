@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { redirect, useNavigate } from 'react-router';
 import { z } from 'zod';
+import { ArrowRight, Loader2, Target } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -12,29 +13,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
+import { DEPARTMENT_COLORS } from '~/constants/department-colors';
 import { applySessionFromAccessToken, tryRefreshSession } from '~/lib/api';
 import { setupService } from '~/services/setup.service';
+import { DatePicker } from '~/components/ui/date-picker';
 
 export async function clientLoader() {
   const session = await tryRefreshSession();
   if (!session) throw redirect('/login');
-
   applySessionFromAccessToken(session.accessToken);
-
   const { setupRequired } = await setupService.getSetupStatus();
   if (!setupRequired) throw redirect('/');
-
   return null;
 }
-
-const DEPARTMENT_COLORS = [
-  { value: '#6366f1', label: 'Violet' },
-  { value: '#3b82f6', label: 'Blue' },
-  { value: '#10b981', label: 'Emerald' },
-  { value: '#f59e0b', label: 'Amber' },
-  { value: '#ef4444', label: 'Red' },
-  { value: '#8b5cf6', label: 'Purple' },
-] as const;
 
 const step1Schema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -56,29 +48,9 @@ type Step1Data = z.infer<typeof step1Schema>;
 type Step2Data = z.infer<typeof step2Schema>;
 type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
-function CorosIcon({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden className={className} fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="14" opacity={0.95} stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="16" cy="16" r="10" opacity={0.85} stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="16" cy="16" r="6" opacity={0.75} stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="16" cy="16" fill="currentColor" opacity={0.9} r="2" />
-    </svg>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg aria-hidden className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor" />
-    </svg>
-  );
-}
-
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-xs text-destructive">{message}</p>;
+  return <p className="text-xs text-destructive">{message}</p>;
 }
 
 function Step1({ onNext }: { onNext: (data: Step1Data) => void }) {
@@ -102,8 +74,7 @@ function Step1({ onNext }: { onNext: (data: Step1Data) => void }) {
     if (!result.success) {
       const fieldErrors: FieldErrors<Step1Data> = {};
       for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof Step1Data;
-        fieldErrors[key] = issue.message;
+        fieldErrors[issue.path[0] as keyof Step1Data] = issue.message;
       }
       setErrors(fieldErrors);
       return;
@@ -112,97 +83,80 @@ function Step1({ onNext }: { onNext: (data: Step1Data) => void }) {
   }
 
   return (
-    <form onSubmit={handleContinue} noValidate>
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-foreground">Set up your workspace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Add your name, then create your first department and position.</p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="firstName">
-              First name
-            </Label>
-            <Input
-              className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-              id="firstName"
-              onChange={(e) => set('firstName', e.target.value)}
-              placeholder="Jane"
-              value={values.firstName}
-            />
-            <FieldError message={errors.firstName} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="lastName">
-              Last name
-            </Label>
-            <Input
-              className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-              id="lastName"
-              onChange={(e) => set('lastName', e.target.value)}
-              placeholder="Smith"
-              value={values.lastName}
-            />
-            <FieldError message={errors.lastName} />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="departmentName">
-            Department name
-          </Label>
+    <form onSubmit={handleContinue} noValidate className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">First name</Label>
           <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="departmentName"
-            onChange={(e) => set('departmentName', e.target.value)}
-            placeholder="Engineering"
-            value={values.departmentName}
+            id="firstName"
+            placeholder="Jane"
+            value={values.firstName}
+            onChange={(e) => set('firstName', e.target.value)}
           />
-          <FieldError message={errors.departmentName} />
+          <FieldError message={errors.firstName} />
         </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="departmentColor">
-            Department color
-          </Label>
-          <Select
-            onValueChange={(val) => set('departmentColor', val ?? DEPARTMENT_COLORS[0].value)}
-            value={values.departmentColor ?? DEPARTMENT_COLORS[0].value}
-          >
-            <SelectTrigger className="h-10 w-full border-border bg-background text-foreground" id="departmentColor">
-              <SelectValue placeholder="Select color" />
-            </SelectTrigger>
-            <SelectContent>
-              {DEPARTMENT_COLORS.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.value }} />
-                    {c.label}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="positionTitle">
-            Position / job title
-          </Label>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Last name</Label>
           <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="positionTitle"
-            onChange={(e) => set('positionTitle', e.target.value)}
-            placeholder="CEO"
-            value={values.positionTitle}
+            id="lastName"
+            placeholder="Smith"
+            value={values.lastName}
+            onChange={(e) => set('lastName', e.target.value)}
           />
-          <FieldError message={errors.positionTitle} />
+          <FieldError message={errors.lastName} />
         </div>
       </div>
 
-      <Button className="mt-6 h-10 w-full bg-primary font-medium text-white hover:bg-primary/90" type="submit">
-        Continue →
+      <div className="space-y-2">
+        <Label htmlFor="departmentName">Department name</Label>
+        <Input
+          id="departmentName"
+          placeholder="Engineering"
+          value={values.departmentName}
+          onChange={(e) => set('departmentName', e.target.value)}
+        />
+        <FieldError message={errors.departmentName} />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="departmentColor">Department color</Label>
+        <Select
+          value={values.departmentColor ?? DEPARTMENT_COLORS[0].value}
+          onValueChange={(val) => set('departmentColor', val ?? DEPARTMENT_COLORS[0].value)}
+        >
+          <SelectTrigger id="departmentColor">
+            <SelectValue placeholder="Select color" />
+          </SelectTrigger>
+          <SelectContent>
+            {DEPARTMENT_COLORS.map((c) => (
+              <SelectItem key={c.value} value={c.value}>
+                <span className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: c.value }}
+                  />
+                  {c.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="positionTitle">Position / job title</Label>
+        <Input
+          id="positionTitle"
+          placeholder="CEO"
+          value={values.positionTitle}
+          onChange={(e) => set('positionTitle', e.target.value)}
+        />
+        <FieldError message={errors.positionTitle} />
+      </div>
+
+      <Button type="submit" className="w-full">
+        Continue
+        <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
     </form>
   );
@@ -229,18 +183,15 @@ function Step2({ step1Data }: { step1Data: Step1Data }) {
   async function handleFinish(e: React.FormEvent) {
     e.preventDefault();
     setApiError(null);
-
     const result = step2Schema.safeParse(values);
     if (!result.success) {
       const fieldErrors: FieldErrors<Step2Data> = {};
       for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof Step2Data;
-        fieldErrors[key] = issue.message;
+        fieldErrors[issue.path[0] as keyof Step2Data] = issue.message;
       }
       setErrors(fieldErrors);
       return;
     }
-
     setLoading(true);
     try {
       await setupService.setup({
@@ -265,102 +216,78 @@ function Step2({ step1Data }: { step1Data: Step1Data }) {
   }
 
   return (
-    <form onSubmit={handleFinish} noValidate>
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-foreground">Complete your profile</h1>
-        <p className="mt-1 text-sm text-muted-foreground">This information will appear on your employee record.</p>
+    <form onSubmit={handleFinish} noValidate className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone number</Label>
+        <Input
+          id="phone"
+          placeholder="+1 555 000 0000"
+          value={values.phone}
+          onChange={(e) => set('phone', e.target.value)}
+        />
+        <FieldError message={errors.phone} />
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="phone">
-            Phone number
-          </Label>
-          <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="phone"
-            onChange={(e) => set('phone', e.target.value)}
-            placeholder="+1 555 000 0000"
-            value={values.phone}
-          />
-          <FieldError message={errors.phone} />
-        </div>
+      <div className="space-y-2">
+  <Label>Date of birth</Label>
+  <DatePicker
+    value={values.dateOfBirth}
+    onChange={(next) => set('dateOfBirth', next ?? '')}
+    placeholder="Select date of birth"
+    toDate={new Date()}
+  />
+  <FieldError message={errors.dateOfBirth} />
+</div>
 
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="dateOfBirth">
-            Date of birth
-          </Label>
-          <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="dateOfBirth"
-            onChange={(e) => set('dateOfBirth', e.target.value)}
-            type="date"
-            value={values.dateOfBirth}
-          />
-          <FieldError message={errors.dateOfBirth} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" htmlFor="address">
-            Address
-            <span className="ml-1 text-xs normal-case tracking-normal text-muted-foreground">(optional)</span>
-          </Label>
-          <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="address"
-            onChange={(e) => set('address', e.target.value)}
-            placeholder="123 Main St, City, Country"
-            value={values.address}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label
-            className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
-            htmlFor="emergencyContactName"
-          >
-            Emergency contact name
-            <span className="ml-1 text-xs normal-case tracking-normal text-muted-foreground">(optional)</span>
-          </Label>
-          <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="emergencyContactName"
-            onChange={(e) => set('emergencyContactName', e.target.value)}
-            placeholder="John Smith"
-            value={values.emergencyContactName}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label
-            className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
-            htmlFor="emergencyContactPhone"
-          >
-            Emergency contact phone
-            <span className="ml-1 text-xs normal-case tracking-normal text-muted-foreground">(optional)</span>
-          </Label>
-          <Input
-            className="h-10 border-border bg-background text-foreground placeholder:text-muted-foreground"
-            id="emergencyContactPhone"
-            onChange={(e) => set('emergencyContactPhone', e.target.value)}
-            placeholder="+1 555 000 0001"
-            value={values.emergencyContactPhone}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="address">
+          Address{' '}
+          <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
+          id="address"
+          placeholder="123 Main St, City, Country"
+          value={values.address}
+          onChange={(e) => set('address', e.target.value)}
+        />
       </div>
 
-      {apiError ? <p className="mt-4 text-sm text-destructive">{apiError}</p> : null}
+      <div className="space-y-2">
+        <Label htmlFor="emergencyContactName">
+          Emergency contact name{' '}
+          <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
+          id="emergencyContactName"
+          placeholder="John Smith"
+          value={values.emergencyContactName}
+          onChange={(e) => set('emergencyContactName', e.target.value)}
+        />
+      </div>
 
-      <Button
-        className="mt-6 h-10 w-full bg-primary font-medium text-white hover:bg-primary/90 disabled:opacity-60"
-        disabled={loading}
-        type="submit"
-      >
+      <div className="space-y-2">
+        <Label htmlFor="emergencyContactPhone">
+          Emergency contact phone{' '}
+          <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
+          id="emergencyContactPhone"
+          placeholder="+1 555 000 0001"
+          value={values.emergencyContactPhone}
+          onChange={(e) => set('emergencyContactPhone', e.target.value)}
+        />
+      </div>
+
+      {apiError ? (
+        <p className="text-sm text-destructive">{apiError}</p>
+      ) : null}
+
+      <Button type="submit" className="w-full" disabled={loading}>
         {loading ? (
-          <span className="flex items-center gap-2">
-            <Spinner />
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Setting up…
-          </span>
+          </>
         ) : (
           'Finish setup'
         )}
@@ -379,22 +306,34 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-accent px-4 py-12">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 px-4 py-12">
       <div className="w-full max-w-lg">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-            <CorosIcon className="h-6 w-6" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+            <Target className="h-5 w-5 text-primary-foreground" />
           </div>
           <p className="text-xs text-muted-foreground">Step {step} of 2</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-background p-8 shadow-sm">
-          {step === 1 ? (
-            <Step1 onNext={handleStep1Next} />
-          ) : (
-            <Step2 step1Data={step1Data!} />
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {step === 1 ? 'Set up your workspace' : 'Complete your profile'}
+            </CardTitle>
+            <CardDescription>
+              {step === 1
+                ? 'Add your name, then create your first department and position.'
+                : 'This information will appear on your employee record.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {step === 1 ? (
+              <Step1 onNext={handleStep1Next} />
+            ) : (
+              <Step2 step1Data={step1Data!} />
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

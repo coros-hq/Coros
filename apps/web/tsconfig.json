@@ -8,6 +8,10 @@
   ],
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["app/*"]
+    },
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "types": ["@react-router/node", "node"]

@@ -84,22 +84,20 @@ export function DataTable<TData>({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex min-w-0 items-center justify-between gap-2">
+      {/* Single row: fixed-width search + filters + actions (scroll on narrow viewports) */}
+      <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
         <Input
-          className="h-10 min-w-[12rem] max-w-md flex-1 rounded-lg border-border bg-card text-sm text-foreground placeholder:text-muted-foreground"
+          className="w-[min(100%,18rem)] shrink-0 border-border bg-background md:w-72"
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder={searchPlaceholder}
           value={globalFilter}
         />
-        <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2">
           {toolbar}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button
-                  className="h-10 gap-1.5 px-3 text-sm font-medium"
-                  variant="outline"
-                >
+                <Button className="shrink-0 gap-1.5" variant="outline">
                   Columns
                   <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
                 </Button>
@@ -133,7 +131,7 @@ export function DataTable<TData>({
                   const sorted = header.column.getIsSorted();
                   return (
                     <TableHead
-                      className="h-9 px-3 py-2 text-2xs font-bold uppercase tracking-wide text-foreground"
+                      className="h-10 px-3 py-2 text-xs font-bold uppercase tracking-wide text-foreground"
                       key={header.id}
                       onClick={header.column.getToggleSortingHandler()}
                       style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
@@ -161,7 +159,7 @@ export function DataTable<TData>({
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow className="border-border" key={i}>
                   {columns.map((_, ci) => (
-                    <TableCell className="px-3 py-4" key={ci}>
+                    <TableCell className="px-3 py-2.5" key={ci}>
                       <Skeleton className="h-4 w-full rounded-md" />
                     </TableCell>
                   ))}
@@ -170,7 +168,7 @@ export function DataTable<TData>({
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  className="h-32 text-center text-sm text-foreground"
+                  className="h-24 py-8 text-center text-sm text-muted-foreground"
                   colSpan={columns.length}
                 >
                   No results found.
@@ -184,7 +182,7 @@ export function DataTable<TData>({
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell className="px-3 py-4 text-sm text-foreground" key={cell.id}>
+                    <TableCell className="px-3 py-2.5 text-sm text-foreground" key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -202,7 +200,7 @@ export function DataTable<TData>({
         </p>
         <div className="flex items-center gap-2">
           <Button
-            className="h-9 min-w-[5.5rem] px-3 text-sm font-medium"
+            className="min-w-[5.5rem]"
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
             variant="outline"
@@ -213,7 +211,7 @@ export function DataTable<TData>({
             Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
           </span>
           <Button
-            className="h-9 min-w-[5.5rem] px-3 text-sm font-medium"
+            className="min-w-[5.5rem]"
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
             variant="outline"

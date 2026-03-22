@@ -50,8 +50,8 @@ export class NewEmployeeDto {
   role?: Role;
 
   @IsUUID()
-  @IsNotEmpty()
-  managerId!: string;
+  @IsOptional()
+  managerId?: string;
 
   @IsUUID()
   @IsNotEmpty()

@@ -30,7 +30,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '~/components/
 import { cn } from '~/lib/utils';
 import type { ApiEmployee } from '~/services/employee.service';
 import { listEmployees } from '~/services/employee.service';
-import { listLeaveRequestsByStatus } from '~/services/leave-request.service';
+import { getAllLeaveRequests } from '~/services/leave-request.service';
+import { getAllProjects } from '~/services/project.service';
 import { useAuthStore } from '~/stores/auth.store';
 
 type RowStatus = 'active' | 'on_leave' | 'inactive';
@@ -141,6 +142,8 @@ export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [pendingLeave, setPendingLeave] = useState(0);
+  const [activeProjects, setActiveProjects] = useState(0);
+  const [totalTasks, setTotalTasks] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<EmployeeRow | null>(null);
@@ -153,13 +156,16 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const [emps, pending] = await Promise.all([
+        const [emps, requests, projects] = await Promise.all([
           listEmployees(),
-          listLeaveRequestsByStatus('pending').catch(() => []),
+          getAllLeaveRequests().catch(() => []),
+          getAllProjects().catch(() => []),
         ]);
         if (cancelled) return;
         setRows(emps.map(mapEmployee));
-        setPendingLeave(pending.length);
+        setPendingLeave(requests.filter((r) => r.status === 'pending').length);
+        setActiveProjects(projects.filter((p) => p.status === 'active').length);
+        setTotalTasks(projects.reduce((s, p) => s + (p.taskCount ?? 0), 0));
       } catch (e: unknown) {
         if (cancelled) return;
         const msg =
@@ -260,7 +266,7 @@ export default function DashboardPage() {
   const totalEmployees = rows.length;
 
   return (
-    <div className="min-h-full bg-accent">
+    <div className="min-h-full">
       <div className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-background px-5">
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs">
           <span className="text-muted-foreground">Dashboard</span>
@@ -306,8 +312,8 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard icon={Users} label="Total Employees" sub="Team total" value={loading ? '—' : totalEmployees} />
-          <StatCard icon={FolderKanban} label="Active Projects" sub="No projects module" value={0} />
-          <StatCard icon={CheckSquare} label="Open Tasks" sub="No tasks module" value={0} />
+          <StatCard icon={FolderKanban} label="Active Projects" sub="In progress" value={loading ? '—' : activeProjects} />
+          <StatCard icon={CheckSquare} label="Total Tasks" sub="Across projects" value={loading ? '—' : totalTasks} />
           <StatCard
             icon={CalendarOff}
             label="Leave Requests"
@@ -398,7 +404,7 @@ export default function DashboardPage() {
                 ) : (
                   table.getRowModel().rows.map((row) => (
                     <tr
-                      className="cursor-pointer border-b border-border transition-colors duration-100 hover:bg-accent"
+                      className="cursor-pointer border-b border-border transition-colors duration-100 hover:bg-accent/10"
                       key={row.id}
                       onClick={() => setSelected(row.original)}
                     >

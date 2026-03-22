@@ -4,6 +4,16 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
@@ -27,6 +37,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '~/components/ui/sheet';
+import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '~/lib/utils';
 import { EmployeeForm } from '~/components/employees/EmployeeForm';
 import { useEmployees } from '~/hooks/useEmployees';
@@ -57,12 +68,13 @@ function mapStatus(s?: string): RowStatus {
   return 'active';
 }
 
-function formatDate(d?: string): string {
+function formatJoinedDate(d?: string): string {
   if (!d) return '—';
   try {
-    return new Date(d).toISOString().slice(0, 10);
+    const date = parseISO(d);
+    return isValid(date) ? format(date, 'MMM d, yyyy') : '—';
   } catch {
-    return d;
+    return '—';
   }
 }
 
@@ -75,7 +87,7 @@ function mapEmployee(e: ApiEmployee): EmployeeRow {
     departmentId: e.department?.id ?? '',
     position: e.position?.name ?? '—',
     status: mapStatus(e.status),
-    joinedAt: formatDate(e.hireDate),
+    joinedAt: formatJoinedDate(e.hireDate),
     raw: e,
   };
 }
@@ -130,6 +142,9 @@ export default function EmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<ApiEmployee | null>(
     null
   );
+  const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeRow | null>(
+    null
+  );
   const [statusFilter, setStatusFilter] = useState<RowStatus | 'all'>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
 
@@ -142,7 +157,10 @@ export default function EmployeesPage() {
     create,
     update,
     remove,
+    createDepartment,
+    createPosition,
   } = useEmployees();
+
   const user = useAuthStore((s) => s.user);
   const canMutate = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -216,18 +234,10 @@ export default function EmployeesPage() {
               header: '',
               cell: ({ row }: { row: { original: EmployeeRow } }) => (
                 <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="h-7 w-7"
-                        aria-label="Actions"
-                      />
-                    }
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
@@ -247,13 +257,7 @@ export default function EmployeesPage() {
                       className="text-destructive focus:text-destructive"
                       onSelect={(e) => {
                         e.preventDefault();
-                        if (
-                          window.confirm(
-                            `Delete ${row.original.name}? This cannot be undone.`
-                          )
-                        ) {
-                          remove(row.original.id);
-                        }
+                        setEmployeeToDelete(row.original);
                       }}
                     >
                       <Trash2 className="mr-2 h-3.5 w-3.5" />
@@ -266,7 +270,7 @@ export default function EmployeesPage() {
           ]
         : []),
     ],
-    [canMutate, remove]
+    [canMutate]
   );
 
   const handleCreateSubmit = async (
@@ -282,6 +286,8 @@ export default function EmployeesPage() {
     };
     if (values.managerId) payload.managerId = values.managerId;
     if (values.employmentType) payload.employmentType = values.employmentType;
+    if (values.hireDate) payload.hireDate = values.hireDate;
+    if (values.dateOfBirth) payload.dateOfBirth = values.dateOfBirth;
     await create(payload);
     setSheetOpen(false);
   };
@@ -300,6 +306,10 @@ export default function EmployeesPage() {
     if (values.positionId !== undefined) payload.positionId = values.positionId;
     if (values.managerId !== undefined)
       payload.managerId = values.managerId || undefined;
+    if (values.hireDate !== undefined && values.hireDate)
+      payload.hireDate = values.hireDate;
+    if (values.dateOfBirth !== undefined && values.dateOfBirth)
+      payload.dateOfBirth = values.dateOfBirth;
     await update(editingEmployee.id, payload);
     setEditingEmployee(null);
     setSheetOpen(false);
@@ -320,9 +330,7 @@ export default function EmployeesPage() {
           setStatusFilter((v ?? 'all') as RowStatus | 'all')
         }
       >
-        <SelectTrigger
-          className="h-10 w-[min(100%,11rem)] min-w-[9.5rem] border-border bg-card text-sm text-foreground"
-        >
+        <SelectTrigger className="w-[10.5rem] shrink-0 border-border bg-background md:w-44">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -337,9 +345,7 @@ export default function EmployeesPage() {
         value={departmentFilter}
         onValueChange={(v) => setDepartmentFilter(v ?? 'all')}
       >
-        <SelectTrigger
-          className="h-10 w-[min(100%,14rem)] min-w-[11rem] border-border bg-card text-sm text-foreground"
-        >
+        <SelectTrigger className="w-[12rem] shrink-0 border-border bg-background md:w-52">
           <SelectValue placeholder="Department" />
         </SelectTrigger>
         <SelectContent>
@@ -353,7 +359,7 @@ export default function EmployeesPage() {
       </Select>
       {canMutate && (
         <Button
-          className="h-10 gap-1.5 px-4 text-sm"
+          className="shrink-0 gap-1.5"
           onClick={() => {
             setEditingEmployee(null);
             setSheetOpen(true);
@@ -411,6 +417,8 @@ export default function EmployeesPage() {
               departments={departments}
               positions={positions}
               employees={employees}
+              createDepartment={createDepartment}
+              createPosition={createPosition}
               onSubmit={
                 editingEmployee ? handleUpdateSubmit : handleCreateSubmit
               }
@@ -419,6 +427,35 @@ export default function EmployeesPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!employeeToDelete}
+        onOpenChange={(open) => !open && setEmployeeToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {employeeToDelete?.name}? This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (employeeToDelete) {
+                  remove(employeeToDelete.id);
+                  setEmployeeToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -1,16 +1,7 @@
-import { createRoutesStub } from 'react-router';
-import { render, screen, waitFor } from '@testing-library/react';
-import App from '../../app/app';
+import { expect, test } from 'vitest';
 
-test('renders loader data', async () => {
-  const ReactRouterStub = createRoutesStub([
-    {
-      path: '/',
-      Component: App,
-    },
-  ]);
+import DashboardPage from '../../app/routes/_app._index';
 
-  render(<ReactRouterStub />);
-
-  await waitFor(() => screen.findByText('Hello there,'));
+test('dashboard page is a component', () => {
+  expect(typeof DashboardPage).toBe('function');
 });

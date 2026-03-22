@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select';
+import { CreatableSelect } from '~/components/ui/creatable-select';
 import { DatePicker as ShadcnDatePicker } from '~/components/ui/date-picker';
 import type { ApiEmployee } from '~/services/employee.service';
 import type { ApiDepartment } from '~/services/department.service';
@@ -29,7 +30,9 @@ const createSchema = z.object({
   positionId: z.string().min(1, 'Required'),
   managerId: z.string().optional(),
   role: z.enum(['admin', 'manager', 'employee']).optional(),
-  employmentType: z.enum(['full_time', 'part_time', 'contract', 'intern']).optional(),
+  employmentType: z
+    .enum(['full_time', 'part_time', 'contract', 'intern'])
+    .optional(),
 });
 
 const updateSchema = createSchema.partial();
@@ -49,6 +52,17 @@ export interface EmployeeFormProps {
   departments: ApiDepartment[];
   positions: ApiPosition[];
   employees: ApiEmployee[];
+  /** When set, department is fixed and the department field is hidden. */
+  fixedDepartmentId?: string;
+  createDepartment?: (
+    name: string,
+    color?: string
+  ) => Promise<ApiDepartment>;
+  createPosition?: (
+    departmentId: string,
+    name: string,
+    description?: string
+  ) => Promise<ApiPosition>;
   onSubmit: (values: CreateValues | UpdateValues) => Promise<void>;
   onCancel: () => void;
 }
@@ -59,6 +73,9 @@ export function EmployeeForm({
   departments,
   positions,
   employees,
+  fixedDepartmentId,
+  createDepartment,
+  createPosition,
   onSubmit,
   onCancel,
 }: EmployeeFormProps) {
@@ -76,7 +93,7 @@ export function EmployeeForm({
         phone: employee.phone ?? '',
         dateOfBirth: toDateInputValue(employee.dateOfBirth),
         hireDate: toDateInputValue(employee.hireDate),
-        departmentId: employee.department?.id ?? '',
+        departmentId: employee.department?.id ?? fixedDepartmentId ?? '',
         positionId: employee.position?.id ?? '',
         managerId: employee.managerId ?? '',
         role: (employee.user?.role as CreateValues['role']) ?? 'employee',
@@ -90,7 +107,7 @@ export function EmployeeForm({
       phone: '',
       dateOfBirth: '',
       hireDate: '',
-      departmentId: '',
+      departmentId: fixedDepartmentId ?? '',
       positionId: '',
       managerId: '',
       role: 'employee',
@@ -101,8 +118,9 @@ export function EmployeeForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const effectiveDepartmentId = fixedDepartmentId ?? values.departmentId;
   const filteredPositions = positions.filter(
-    (p) => !values.departmentId || p.department?.id === values.departmentId
+    (p) => !effectiveDepartmentId || p.department?.id === effectiveDepartmentId
   );
 
   const managerOptions = employees.filter((e) => e.id !== employee?.id);
@@ -174,19 +192,16 @@ export function EmployeeForm({
     employee: 'Employee',
   };
 
-  const getDepartmentLabel = (id: string) => departments.find((d) => d.id === id)?.name ?? '';
-  const getPositionLabel = (id: string) =>
-    positions.find((p) => p.id === id)?.name ?? '';
-  const getManagerLabel = (id: string) => {
-    const e = managerOptions.find((x) => x.id === id);
-    return e ? `${e.firstName} ${e.lastName}` : '';
-  };
   const getEmploymentLabel = (value: string) =>
     EMPLOYMENT_LABELS[value] ?? value;
   const getRoleLabel = (value: string) => ROLE_LABELS[value] ?? value;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 py-4" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-4 py-4"
+      noValidate
+    >
       {errors._form ? (
         <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors._form}
@@ -196,9 +211,7 @@ export function EmployeeForm({
       {/* First name / Last name */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="firstName">
-            First name
-          </Label>
+          <Label htmlFor="firstName">First name</Label>
           <Input
             id="firstName"
             value={values.firstName ?? ''}
@@ -209,9 +222,7 @@ export function EmployeeForm({
           <FieldError message={errors.firstName} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lastName">
-            Last name
-          </Label>
+          <Label htmlFor="lastName">Last name</Label>
           <Input
             id="lastName"
             value={values.lastName ?? ''}
@@ -225,9 +236,7 @@ export function EmployeeForm({
 
       {/* Email */}
       <div className="space-y-2">
-        <Label htmlFor="email">
-          Email
-        </Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
@@ -241,9 +250,7 @@ export function EmployeeForm({
 
       {/* Phone */}
       <div className="space-y-2">
-        <Label htmlFor="phone">
-          Phone
-        </Label>
+        <Label htmlFor="phone">Phone</Label>
         <Input
           id="phone"
           value={values.phone ?? ''}
@@ -256,9 +263,7 @@ export function EmployeeForm({
       {/* Date of birth / Hire date */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="dateOfBirth">
-            Date of birth
-          </Label>
+          <Label htmlFor="dateOfBirth">Date of birth</Label>
           <ShadcnDatePicker
             value={values.dateOfBirth}
             onChange={(next) => set('dateOfBirth', next ?? '')}
@@ -267,9 +272,7 @@ export function EmployeeForm({
           <FieldError message={errors.dateOfBirth} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="hireDate">
-            Hire date
-          </Label>
+          <Label htmlFor="hireDate">Hire date</Label>
           <ShadcnDatePicker
             value={values.hireDate}
             onChange={(next) => set('hireDate', next ?? '')}
@@ -279,51 +282,58 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* Department */}
-      <div className="space-y-2">
-        <Label>Department</Label>
-        <Select
-          value={values.departmentId ?? ''}
-          onValueChange={(v) => set('departmentId', v ?? '')}
-          disabled={!isAdmin && mode === 'edit'}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select department">
-              {values.departmentId ? getDepartmentLabel(values.departmentId) : ''}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {departments.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <FieldError message={errors.departmentId} />
-      </div>
+      {/* Department - hidden when fixed */}
+      {!fixedDepartmentId ? (
+        <div className="space-y-2">
+          <Label>Department</Label>
+          <CreatableSelect
+            options={departments.map((d) => ({ value: d.id, label: d.name }))}
+            value={values.departmentId ?? ''}
+            onChange={(v) => set('departmentId', v)}
+            placeholder="Select department"
+            disabled={!isAdmin && mode === 'edit'}
+            onCreate={
+              createDepartment
+                ? async (name, color) => {
+                    const d = await createDepartment(name, color);
+                    return { value: d.id, label: d.name };
+                  }
+                : undefined
+            }
+            showColorPicker={true}
+            createLabel="department"
+          />
+          <FieldError message={errors.departmentId} />
+        </div>
+      ) : null}
 
       {/* Position */}
       <div className="space-y-2">
         <Label>Position</Label>
-        <Select
+        <CreatableSelect
+          options={filteredPositions.map((p) => ({
+            value: p.id,
+            label: p.name,
+          }))}
           value={values.positionId ?? ''}
-          onValueChange={(v) => set('positionId', v ?? '')}
-          disabled={!isAdmin && mode === 'edit'}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select position">
-              {values.positionId ? getPositionLabel(values.positionId) : ''}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {filteredPositions.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => set('positionId', v)}
+          placeholder="Select position"
+          disabled={
+            (!isAdmin && mode === 'edit') || !effectiveDepartmentId
+          }
+          onCreate={
+            createPosition && effectiveDepartmentId
+              ? async (name) => {
+                  const deptId = effectiveDepartmentId;
+                  if (!deptId) return null;
+                  const p = await createPosition(deptId, name);
+                  return { value: p.id, label: p.name };
+                }
+              : undefined
+          }
+          showColorPicker={false}
+          createLabel="position"
+        />
         <FieldError message={errors.positionId} />
       </div>
 
@@ -331,22 +341,19 @@ export function EmployeeForm({
       <div className="space-y-2">
         <Label>
           Manager{' '}
-          <span className="normal-case tracking-normal text-muted-foreground">(optional)</span>
+          <span className="normal-case tracking-normal text-muted-foreground">
+            (optional)
+          </span>
         </Label>
         <Select
-          value={values.managerId ?? ''}
-          onValueChange={(v) => set('managerId', !v ? undefined : v)}
-          disabled={!isAdmin && mode === 'edit'}
+          value={values.managerId ?? 'none'}
+          onValueChange={(v) => set('managerId', v === 'none' ? undefined : v)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="None">
-              {values.managerId ? getManagerLabel(String(values.managerId)) : ''}
-            </SelectValue>
+            <SelectValue placeholder="None" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">
-              None
-            </SelectItem>
+            <SelectItem value="none">None</SelectItem>
             {managerOptions.map((e) => (
               <SelectItem key={e.id} value={e.id}>
                 {e.firstName} {e.lastName}
@@ -362,28 +369,22 @@ export function EmployeeForm({
           <Label>Employment type</Label>
           <Select
             value={values.employmentType ?? 'full_time'}
-            onValueChange={(v) => set('employmentType', v as CreateValues['employmentType'])}
+            onValueChange={(v) =>
+              set('employmentType', v as CreateValues['employmentType'])
+            }
           >
             <SelectTrigger>
-            <SelectValue placeholder="Select type">
-              {values.employmentType
-                ? getEmploymentLabel(String(values.employmentType))
-                : ''}
-            </SelectValue>
+              <SelectValue placeholder="Select type">
+                {values.employmentType
+                  ? getEmploymentLabel(String(values.employmentType))
+                  : ''}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="full_time">
-                Full-time
-              </SelectItem>
-              <SelectItem value="part_time">
-                Part-time
-              </SelectItem>
-              <SelectItem value="contract">
-                Contract
-              </SelectItem>
-              <SelectItem value="intern">
-                Intern
-              </SelectItem>
+              <SelectItem value="full_time">Full-time</SelectItem>
+              <SelectItem value="part_time">Part-time</SelectItem>
+              <SelectItem value="contract">Contract</SelectItem>
+              <SelectItem value="intern">Intern</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -402,18 +403,10 @@ export function EmployeeForm({
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="employee">
-              Employee
-            </SelectItem>
-            <SelectItem value="manager">
-              Manager
-            </SelectItem>
-            <SelectItem value="admin">
-              Admin
-            </SelectItem>
-            <SelectItem value="super_admin">
-              Super admin
-            </SelectItem>
+            <SelectItem value="employee">Employee</SelectItem>
+            <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="super_admin">Super admin</SelectItem>
           </SelectContent>
         </Select>
         <FieldError message={errors.role} />
@@ -422,7 +415,11 @@ export function EmployeeForm({
       {/* Actions */}
       <div className="mt-4 flex gap-2 pb-2">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create employee' : 'Save changes'}
+          {isSubmitting
+            ? 'Saving…'
+            : mode === 'create'
+            ? 'Create employee'
+            : 'Save changes'}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel

@@ -2,6 +2,7 @@ import { OrganizationSize } from '@org/shared-types';
 import {
   IsEmail,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -10,6 +11,7 @@ import {
 
 export class RegisterDto {
   @IsString()
+  @IsNotEmpty()
   organizationName!: string;
 
   @IsEnum(OrganizationSize)

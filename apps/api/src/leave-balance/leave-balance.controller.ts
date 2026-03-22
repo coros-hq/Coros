@@ -12,6 +12,7 @@ import {
 import { LeaveBalanceService } from './leave-balance.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@org/shared-types';
 import { NewLeaveBalanceDto } from './dto/new-leave-balance.dto';
 import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
@@ -19,6 +20,19 @@ import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 @Controller('leave-balance')
 export class LeaveBalanceController {
   constructor(private readonly leaveBalanceService: LeaveBalanceService) {}
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  async getMe(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('organizationId') organizationId: string,
+  ) {
+    return this.leaveBalanceService.findByUserIdAndOrganization(
+      userId,
+      organizationId,
+    );
+  }
 
   @Post('create')
   @UseGuards(JwtAuthGuard)
