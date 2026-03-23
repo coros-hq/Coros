@@ -10,10 +10,12 @@ export interface ApiEmployee {
   hireDate?: string;
   dateOfBirth?: string;
   employmentType?: string;
+  address?: string;
   user?: { id: string; email: string; role?: string };
   department?: { id: string; name: string };
   position?: { id: string; name: string };
   managerId?: string;
+  manager?: { id: string; firstName: string; lastName: string };
 }
 
 export interface CreateEmployeePayload {

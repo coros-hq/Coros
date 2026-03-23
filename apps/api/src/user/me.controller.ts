@@ -17,6 +17,15 @@ export class MeController {
     return this.meService.getEmployee(userId, organizationId);
   }
 
+  @Get('tasks')
+  @UseGuards(JwtAuthGuard)
+  getMyTasks(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('organizationId') organizationId: string,
+  ) {
+    return this.meService.getMyTasks(userId, organizationId);
+  }
+
   @Get('setup-status')
   getSetupStatus(
     @CurrentUser('id') userId: string,

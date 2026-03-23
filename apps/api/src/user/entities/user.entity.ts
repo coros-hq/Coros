@@ -8,6 +8,12 @@ import { LeaveRequest } from '../../leave-request/entities/leave-request.entity'
 
 @Entity('user')
 export class User extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, default: '' })
+  firstName!: string;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
+  lastName!: string;
+
   @Column({ type: 'varchar', length: 255 })
   email!: string;
 

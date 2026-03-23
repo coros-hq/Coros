@@ -26,6 +26,10 @@ export interface ApiTask {
     lastName: string;
     user?: { id?: string; email?: string };
   } | null;
+  project?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface CreateTaskDto {
@@ -41,6 +45,16 @@ export interface CreateTaskDto {
 export interface UpdateTaskDto extends Partial<CreateTaskDto> {
   assigneeId?: string | null;
   kanbanColumnId?: string | null;
+}
+
+export async function getMyTasks(): Promise<ApiTask[]> {
+  return api.get<ApiTask[]>('/me/tasks');
+}
+
+export async function getTasksByEmployee(
+  employeeId: string
+): Promise<ApiTask[]> {
+  return api.get<ApiTask[]>(`/employees/${employeeId}/tasks`);
 }
 
 export async function getAll(projectId: string): Promise<ApiTask[]> {

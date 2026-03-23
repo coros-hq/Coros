@@ -44,13 +44,18 @@ import {
   TableRow,
 } from '~/components/ui/table';
 import { KanbanBoard } from '~/components/tasks/KanbanBoard';
+import { TaskDetailPanel } from '~/components/tasks/TaskDetailPanel';
 import { TaskForm, type TaskFormValues } from '~/components/tasks/TaskForm';
 import { useKanbanColumns } from '~/hooks/useKanbanColumns';
 import { useProjectDetail } from '~/hooks/useProjectDetail';
 import { useTasks } from '~/hooks/useTasks';
 import { useAuthStore } from '~/stores/auth.store';
 import type { ApiKanbanColumn } from '~/services/kanban-column.service';
-import type { ApiTask, TaskStatus } from '~/services/task.service';
+import type {
+  ApiTask,
+  TaskStatus,
+  UpdateTaskDto,
+} from '~/services/task.service';
 
 const STATUS_LABELS: Record<string, string> = {
   todo: 'To do',
@@ -88,7 +93,8 @@ export default function ProjectTasksPage() {
   const headerPortal = useRef<Element | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<ApiTask | null>(null);
+  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
+  const [panelTaskId, setPanelTaskId] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<ApiTask | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
@@ -130,6 +136,17 @@ export default function ProjectTasksPage() {
     setPortalReady(true);
   }, []);
 
+  useEffect(() => {
+    if (
+      taskPanelOpen &&
+      panelTaskId &&
+      !tasks.some((t) => t.id === panelTaskId)
+    ) {
+      setTaskPanelOpen(false);
+      setPanelTaskId(null);
+    }
+  }, [taskPanelOpen, panelTaskId, tasks]);
+
   const handleCreateSubmit = async (values: TaskFormValues) => {
     await create({
       name: values.name,
@@ -143,19 +160,9 @@ export default function ProjectTasksPage() {
     setSheetOpen(false);
   };
 
-  const handleUpdateSubmit = async (values: TaskFormValues) => {
-    if (!editingTask) return;
-    await update(editingTask.id, {
-      name: values.name,
-      description: values.description,
-      status: values.status as TaskStatus | undefined,
-      priority: values.priority as 'low' | 'medium' | 'high' | 'urgent',
-      dueDate: values.dueDate,
-      assigneeId: values.assigneeId || null,
-      kanbanColumnId: values.kanbanColumnId ?? null,
-    });
-    setEditingTask(null);
-    setSheetOpen(false);
+  const openTaskPanel = (task: ApiTask) => {
+    setPanelTaskId(task.id);
+    setTaskPanelOpen(true);
   };
 
   const handleMoveTask = async (taskId: string, columnId: string) => {
@@ -204,11 +211,15 @@ export default function ProjectTasksPage() {
       !!user?.id &&
       task.assignee?.user?.id === user.id);
 
-  const handleSheetClose = (open: boolean) => {
-    if (!open) {
-      setEditingTask(null);
-    }
-    setSheetOpen(open);
+  const panelTask = panelTaskId
+    ? tasks.find((t) => t.id === panelTaskId) ?? null
+    : null;
+
+  const handleTaskPanelUpdate = async (
+    taskId: string,
+    dto: UpdateTaskDto
+  ) => {
+    await update(taskId, dto);
   };
 
   const handleDeleteConfirm = async () => {
@@ -216,6 +227,10 @@ export default function ProjectTasksPage() {
     setDeleteError(null);
     try {
       await remove(taskToDelete.id);
+      if (panelTaskId === taskToDelete.id) {
+        setTaskPanelOpen(false);
+        setPanelTaskId(null);
+      }
       setTaskToDelete(null);
     } catch (err) {
       setDeleteError(extractErrorMessage(err));
@@ -338,16 +353,12 @@ export default function ProjectTasksPage() {
                 canEditTask={canDragOrEditTask}
                 canDeleteTask={() => canMutate}
                 onAddTask={(columnId) => {
-                  setEditingTask(null);
                   setDefaultColumnId(columnId);
                   setSheetOpen(true);
                 }}
                 onQuickAddTask={handleQuickAddTask}
                 onMoveTask={handleMoveTask}
-                onEditTask={(task) => {
-                  setEditingTask(task);
-                  setSheetOpen(true);
-                }}
+                onEditTask={openTaskPanel}
                 onDeleteTask={(task) => setTaskToDelete(task)}
                 onCreateColumn={handleCreateColumn}
                 onRenameColumn={handleRenameColumn}
@@ -382,7 +393,19 @@ export default function ProjectTasksPage() {
                           user?.id &&
                           task.assignee?.user?.id === user.id);
                       return (
-                        <TableRow key={task.id}>
+                        <TableRow
+                          key={task.id}
+                          role="button"
+                          tabIndex={0}
+                          className="cursor-pointer transition-colors hover:bg-muted/50"
+                          onClick={() => openTaskPanel(task)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              openTaskPanel(task);
+                            }
+                          }}
+                        >
                           <TableCell>
                             <div className="flex flex-col gap-0.5">
                               <span className="font-medium text-foreground">
@@ -418,7 +441,10 @@ export default function ProjectTasksPage() {
                             {dueStr}
                           </TableCell>
                           {canMutate ? (
-                            <TableCell className="w-12">
+                            <TableCell
+                              className="w-12"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -429,8 +455,7 @@ export default function ProjectTasksPage() {
                                   <DropdownMenuItem
                                     onSelect={(e) => {
                                       e.preventDefault();
-                                      setEditingTask(task);
-                                      setSheetOpen(true);
+                                      openTaskPanel(task);
                                     }}
                                   >
                                     <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -450,14 +475,14 @@ export default function ProjectTasksPage() {
                               </DropdownMenu>
                             </TableCell>
                           ) : canEdit ? (
-                            <TableCell className="w-12">
+                            <TableCell
+                              className="w-12"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                  setEditingTask(task);
-                                  setSheetOpen(true);
-                                }}
+                                onClick={() => openTaskPanel(task)}
                               >
                                 Edit
                               </Button>
@@ -474,24 +499,44 @@ export default function ProjectTasksPage() {
         )}
       </div>
 
-      <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>
+      {project ? (
+        <TaskDetailPanel
+          task={panelTask}
+          open={taskPanelOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPanelTaskId(null);
+            }
+            setTaskPanelOpen(open);
+          }}
+          members={project.members ?? []}
+          columns={columns}
+          canMutate={
+            !!panelTask &&
+            (canMutate ||
+              (canUpdateOwnTasks &&
+                !!panelTask.assigneeId &&
+                !!user?.id &&
+                panelTask.assignee?.user?.id === user.id))
+          }
+          onUpdate={handleTaskPanelUpdate}
+          onDelete={(task) => setTaskToDelete(task)}
+        />
+      ) : null}
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>
-              {editingTask ? 'Edit task' : 'Add task'}
-            </SheetTitle>
+            <SheetTitle>Add task</SheetTitle>
           </SheetHeader>
           <TaskForm
-            key={editingTask?.id ?? `new-${defaultColumnId}`}
-            mode={editingTask ? 'edit' : 'create'}
-            task={editingTask ?? undefined}
+            key={`new-${defaultColumnId}`}
+            mode="create"
             members={project?.members ?? []}
             columns={columns}
             defaultColumnId={defaultColumnId}
-            onSubmit={
-              editingTask ? handleUpdateSubmit : handleCreateSubmit
-            }
-            onCancel={() => handleSheetClose(false)}
+            onSubmit={handleCreateSubmit}
+            onCancel={() => setSheetOpen(false)}
           />
         </SheetContent>
       </Sheet>

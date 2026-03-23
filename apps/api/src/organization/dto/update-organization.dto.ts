@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUrl, IsUUID } from 'class-validator';
 import { OrganizationSize } from '@org/shared-types';
 
 export class UpdateOrganizationDto {
@@ -19,6 +19,14 @@ export class UpdateOrganizationDto {
   industry?: string;
 
   @IsOptional()
+  @IsUUID()
+  industryId?: string;
+
+  @IsOptional()
   @IsEnum(OrganizationSize)
   size?: OrganizationSize;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

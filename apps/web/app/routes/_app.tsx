@@ -2,7 +2,6 @@ import { Link, Outlet, redirect, useLocation, useNavigate } from 'react-router';
 import {
   LayoutDashboard,
   Users,
-  Building2,
   CalendarDays,
   FolderKanban,
   FileText,
@@ -27,6 +26,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '~/components/ui/sidebar';
+import { SidebarDepartmentsSection } from '~/components/layout/SidebarDepartmentsSection';
 import { authService } from '~/services/auth.service';
 import { setupService } from '~/services/setup.service';
 import { useAuthStore } from '~/stores/auth.store';
@@ -68,13 +68,15 @@ const NAV_GROUPS: {
 }[] = [
   {
     label: null,
-    items: [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }],
+    items: [
+      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/settings', label: 'Settings', icon: Settings },
+    ],
   },
   {
     label: 'People',
     items: [
       { href: '/employees', label: 'Employees', icon: Users },
-      { href: '/departments', label: 'Departments', icon: Building2 },
       { href: '/leave-requests', label: 'Leave Requests', icon: CalendarDays },
     ],
   },
@@ -84,11 +86,6 @@ const NAV_GROUPS: {
       { href: '/projects', label: 'Projects', icon: FolderKanban },
       { href: '/documents', label: 'Documents', icon: FileText },
     ],
-  },
-  {
-    label: 'Admin',
-    items: [{ href: '/settings', label: 'Settings', icon: Settings }],
-    roles: ['admin'] as const,
   },
 ];
 
@@ -167,6 +164,7 @@ export default function AppLayout() {
               </SidebarGroup>
             );
           })}
+          <SidebarDepartmentsSection />
         </SidebarContent>
 
         {user ? (

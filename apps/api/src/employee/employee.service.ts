@@ -20,6 +20,7 @@ import { Employee } from './entities/employee.entity';
 import { User } from '../user/entities/user.entity';
 import { Department } from '../department/entities/department.entity';
 import { LeaveBalance } from '../leave-balance/entities/leave-balance.entity';
+import { Task } from '../task/entities/task.entity';
 import { NewEmployeeDto } from './dto/new-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 
@@ -52,7 +53,9 @@ export class EmployeeService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(Department)
-    private readonly departmentRepository: Repository<Department>
+    private readonly departmentRepository: Repository<Department>,
+    @InjectRepository(Task)
+    private readonly taskRepository: Repository<Task>
   ) {}
 
   async createEmployee(
@@ -192,7 +195,7 @@ export class EmployeeService {
   async getEmployee(id: string, organizationId: string): Promise<Employee> {
     const employee = await this.employeeRepository.findOne({
       where: { id, organizationId },
-      relations: ['user'],
+      relations: ['user', 'department', 'position', 'manager'],
     });
     if (!employee) {
       throw new NotFoundException('Employee not found');
@@ -206,5 +209,22 @@ export class EmployeeService {
       relations: ['user', 'department', 'position'],
     });
     return employees.map((e) => this.stripUserPassword(e));
+  }
+
+  async getTasksByEmployeeId(
+    employeeId: string,
+    organizationId: string
+  ): Promise<Task[]> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: employeeId, organizationId },
+    });
+    if (!employee) {
+      throw new NotFoundException('Employee not found');
+    }
+    return this.taskRepository.find({
+      where: { assigneeId: employeeId, organizationId },
+      relations: ['assignee', 'assignee.user', 'kanbanColumn', 'project'],
+      order: { dueDate: 'ASC', createdAt: 'DESC' },
+    });
   }
 }

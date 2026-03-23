@@ -14,6 +14,7 @@ export class OrganizationsService {
   async getMe(organizationId: string): Promise<Organization> {
     const org = await this.organizationRepository.findOne({
       where: { id: organizationId },
+      relations: ['industry'],
     });
     if (!org) {
       throw new NotFoundException('Organization not found');
@@ -43,7 +44,9 @@ export class OrganizationsService {
 
     if (dto.logo !== undefined) org.logo = dto.logo;
     if (dto.website !== undefined) org.website = dto.website;
+    if (dto.industryId !== undefined) org.industryId = dto.industryId;
     if (dto.size !== undefined) org.size = dto.size;
+    if (dto.isActive !== undefined) org.isActive = dto.isActive;
 
     return this.organizationRepository.save(org);
   }

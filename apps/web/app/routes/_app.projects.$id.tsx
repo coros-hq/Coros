@@ -138,7 +138,8 @@ export default function ProjectDetailPage() {
 
   const user = useAuthStore((s) => s.user);
   const canMutate = user?.role === 'admin' || user?.role === 'super_admin';
-  const canMutateTasks = user?.role === 'admin';
+  const canMutateTasks =
+    user?.role === 'admin' || user?.role === 'super_admin';
 
   useEffect(() => {
     headerPortal.current = document.getElementById('page-header');
@@ -265,6 +266,14 @@ export default function ProjectDetailPage() {
   };
 
   const handleMoveTask = async (taskId: string, columnId: string) => {
+    console.log(
+      'Updating task',
+      taskId,
+      'to column',
+      columnId,
+      'kanbanColumnId',
+      columnId
+    );
     await updateTask(taskId, { kanbanColumnId: columnId });
   };
 

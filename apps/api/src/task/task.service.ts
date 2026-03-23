@@ -135,10 +135,43 @@ export class TaskService {
     await this.projectService.ensureKanbanColumns(organizationId, projectId);
     await this.backfillTaskKanbanColumns(projectId);
 
-    return this.taskRepository.find({
+    const tasks = await this.taskRepository.find({
       where: { projectId },
       relations: ['assignee', 'assignee.user', 'kanbanColumn'],
     });
+
+    const drifted = tasks.filter(
+      (t) =>
+        t.kanbanColumn?.statusKey != null &&
+        t.status !== t.kanbanColumn.statusKey,
+    );
+    if (drifted.length > 0) {
+      const columns = await this.kanbanColumnRepository.find({
+        where: { projectId },
+        order: { position: 'ASC' },
+      });
+      const firstColByStatusKey = new Map<string, ProjectKanbanColumn>();
+      for (const c of columns) {
+        if (c.statusKey != null && !firstColByStatusKey.has(c.statusKey)) {
+          firstColByStatusKey.set(c.statusKey, c);
+        }
+      }
+      for (const t of drifted) {
+        const match = firstColByStatusKey.get(t.status);
+        if (match) {
+          t.kanbanColumnId = match.id;
+          t.kanbanColumn = match;
+        } else {
+          const key = t.kanbanColumn?.statusKey;
+          if (key != null) {
+            t.status = key as TaskStatus;
+          }
+        }
+      }
+      await this.taskRepository.save(drifted);
+    }
+
+    return tasks;
   }
 
   async update(
@@ -189,6 +222,8 @@ export class TaskService {
         task.kanbanColumnId = dto.kanbanColumnId;
         if (col.statusKey) {
           task.status = col.statusKey as TaskStatus;
+        } else if (dto.status != null) {
+          task.status = dto.status;
         }
       } else {
         task.kanbanColumnId = null;
@@ -198,13 +233,32 @@ export class TaskService {
     if (dto.name != null) task.name = dto.name;
     if (dto.description !== undefined) task.description = dto.description ?? null;
 
-    if (dto.status != null && dto.kanbanColumnId === undefined) {
+    if (
+      dto.status != null &&
+      (dto.kanbanColumnId === undefined || dto.kanbanColumnId === null)
+    ) {
       task.status = dto.status;
-      const col = await this.kanbanColumnRepository.findOne({
+      const cols = await this.kanbanColumnRepository.find({
         where: { projectId, statusKey: dto.status },
+        order: { position: 'ASC' },
+        take: 1,
       });
-      if (col) {
-        task.kanbanColumnId = col.id;
+      const col = cols[0];
+      if (!col) {
+        throw new BadRequestException(
+          `No kanban column for status "${dto.status}" in this project`,
+        );
+      }
+      task.kanbanColumnId = col.id;
+    }
+
+    // When the column defines a workflow status, it is canonical (fixes drift e.g. status in_progress + FK to To Do).
+    if (task.kanbanColumnId) {
+      const col = await this.kanbanColumnRepository.findOne({
+        where: { id: task.kanbanColumnId, projectId },
+      });
+      if (col?.statusKey) {
+        task.status = col.statusKey as TaskStatus;
       }
     }
 

@@ -65,7 +65,18 @@ export function TaskCard({
     columns?.filter((c) => c.id !== task.kanbanColumnId) ?? [];
 
   return (
-    <div className="rounded-lg border bg-card p-4 flex flex-col gap-2">
+    <div
+      role="button"
+      tabIndex={0}
+      className="flex cursor-pointer flex-col gap-2 rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      onClick={() => onEdit()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-foreground">{task.name}</p>
         {canMutate ? (
@@ -76,6 +87,7 @@ export function TaskCard({
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 aria-label="Task actions"
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>

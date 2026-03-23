@@ -26,8 +26,11 @@ import { UsersModule } from '../user/user.module';
 import { PositionModule } from '../position/position.module';
 import { EmployeeModule } from '../employee/employee.module';
 import { StorageModule } from '../storage/storage.module';
+import { OrganizationsModule } from '../organization/organizations.module';
 import { ProjectModule } from '../project/project.module';
 import { TaskModule } from '../task/task.module';
+import { DocumentModule } from '../document/document.module';
+import { Document } from '../document/entities/document.entity';
 import { Project } from '../project/entities/project.entity';
 import { ProjectKanbanColumn } from '../project/entities/project-kanban-column.entity';
 import { ProjectMember } from '../project/entities/project-member.entity';
@@ -45,8 +48,10 @@ import { Task } from '../task/entities/task.entity';
     PositionModule,
     EmployeeModule,
     StorageModule,
+    OrganizationsModule,
     ProjectModule,
     TaskModule,
+    DocumentModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env.local',
@@ -76,6 +81,7 @@ import { Task } from '../task/entities/task.entity';
           ProjectKanbanColumn,
           ProjectMember,
           Task,
+          Document,
         ],
         synchronize: true,
       }),

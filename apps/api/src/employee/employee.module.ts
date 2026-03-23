@@ -9,6 +9,7 @@ import { Contract } from '../contract/entities/contract.entity';
 import { LeaveBalance } from '../leave-balance/entities/leave-balance.entity';
 import { Department } from '../department/entities/department.entity';
 import { Position } from '../position/entities/position.entity';
+import { Task } from '../task/entities/task.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { Position } from '../position/entities/position.entity';
       LeaveBalance,
       Department,
       Position,
+      Task,
     ]),
   ],
   providers: [EmployeeService],

@@ -20,6 +20,11 @@ import {
   Settings2,
   Users,
 } from 'lucide-react';
+import { ActiveProjectsRow } from '~/components/dashboard/ActiveProjectsRow';
+import { Greeting } from '~/components/dashboard/Greeting';
+import { MyTasksWidget } from '~/components/dashboard/MyTasksWidget';
+import { PendingLeaveRequestsWidget } from '~/components/dashboard/PendingLeaveRequestsWidget';
+import { QuickActions } from '~/components/dashboard/QuickActions';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -299,12 +304,14 @@ export default function DashboardPage() {
         <header className="space-y-1">
           <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{todayLabel}</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Good morning, {user?.firstName ?? 'there'}
+            <Greeting />, {user?.firstName ?? 'there'}
           </h1>
           <p className="text-sm text-muted-foreground">
             Here&apos;s what&apos;s happening at {user?.organizationName ?? 'your organization'} today.
           </p>
         </header>
+
+        <QuickActions />
 
         {error ? (
           <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
@@ -321,6 +328,13 @@ export default function DashboardPage() {
             value={loading ? '—' : pendingLeave}
           />
         </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <MyTasksWidget />
+          <PendingLeaveRequestsWidget />
+        </div>
+
+        <ActiveProjectsRow />
 
         <section className="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
           <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

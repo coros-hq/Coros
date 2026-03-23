@@ -39,6 +39,9 @@ export class UsersService {
         throw new NotFoundException('User not found');
       }
 
+      if (dto.firstName !== undefined) user.firstName = dto.firstName;
+      if (dto.lastName !== undefined) user.lastName = dto.lastName;
+
       if (dto.email !== undefined) {
         const existing = await userRepo.findOne({
           where: { email: dto.email, id: Not(id) },

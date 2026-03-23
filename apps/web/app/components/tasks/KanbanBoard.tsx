@@ -5,10 +5,12 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  pointerWithin,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -52,9 +54,9 @@ import { Label } from '~/components/ui/label';
 import type { ApiKanbanColumn } from '~/services/kanban-column.service';
 import type { ApiTask } from '~/services/task.service';
 
-/** Stable droppable id: canonical status for default columns, else column uuid. */
+/** Each column must have a unique droppable id (@dnd-kit); never use statusKey — multiple columns can share a status. */
 export function getColumnDroppableId(col: ApiKanbanColumn): string {
-  return col.statusKey ?? col.id;
+  return col.id;
 }
 
 function resolveTargetColumn(
@@ -62,8 +64,8 @@ function resolveTargetColumn(
   cols: ApiKanbanColumn[],
   taskList: ApiTask[]
 ): ApiKanbanColumn | undefined {
-  const byDroppable = cols.find((c) => getColumnDroppableId(c) === overId);
-  if (byDroppable) return byDroppable;
+  const byId = cols.find((c) => c.id === overId);
+  if (byId) return byId;
   const overTask = taskList.find((t) => t.id === overId);
   if (!overTask) return undefined;
   let cid = overTask.kanbanColumnId;
@@ -72,6 +74,13 @@ function resolveTargetColumn(
   }
   return cols.find((c) => c.id === cid);
 }
+
+/** Prefer pointer-inside droppables so empty columns and column bodies register the intended target (closestCorners often misses). */
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerHits = pointerWithin(args);
+  if (pointerHits.length > 0) return pointerHits;
+  return closestCorners(args);
+};
 
 function applyTaskToColumn(task: ApiTask, col: ApiKanbanColumn): ApiTask {
   const nextStatus = col.statusKey
@@ -103,8 +112,8 @@ function DroppableColumn({
       ref={setNodeRef}
       className={
         isOver
-          ? 'min-h-[100px] rounded-lg ring-2 ring-primary/40 ring-offset-2 ring-offset-background'
-          : 'min-h-[100px]'
+          ? 'flex min-h-[min(55vh,420px)] flex-col rounded-lg ring-2 ring-primary/40 ring-offset-2 ring-offset-background'
+          : 'flex min-h-[min(55vh,420px)] flex-col'
       }
     >
       {children}
@@ -386,7 +395,7 @@ export function KanbanBoard({
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={kanbanCollisionDetection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
@@ -396,122 +405,122 @@ export function KanbanBoard({
               return (
                 <div
                   key={col.id}
-                  className="flex w-[min(100%,280px)] min-w-[240px] shrink-0 flex-col gap-3"
+                  className="flex w-[min(100%,280px)] min-w-[240px] shrink-0 flex-col"
                 >
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {col.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {colTasks.length}
-                      </span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      {canMutateColumns ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            aria-label="Move column left"
-                            disabled={index === 0 || pending}
-                            onClick={() => onReorderColumn(col.id, 'left')}
-                          >
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            aria-label="Move column right"
-                            disabled={index >= columns.length - 1 || pending}
-                            onClick={() => onReorderColumn(col.id, 'right')}
-                          >
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                aria-label="Column actions"
-                              >
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  setRenameTarget(col);
-                                  setRenameValue(col.name);
-                                  setRenameOpen(true);
-                                }}
-                              >
-                                <Pencil className="mr-2 h-3.5 w-3.5" />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                disabled={columns.length <= 1}
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  setDeleteTarget(col);
-                                }}
-                              >
-                                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </>
-                      ) : null}
-                      {canMutate ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          aria-label={`Add task in ${col.name}`}
-                          onClick={() => {
-                            if (onQuickAddTask) {
-                              setQuickAddColumnId(col.id);
-                              setQuickAddValue('');
-                            } else {
-                              onAddTask(col.id);
-                            }
-                          }}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {canMutate && onQuickAddTask && quickAddColumnId === col.id ? (
-                    <Input
-                      ref={quickInputRef}
-                      placeholder="Task name…"
-                      value={quickAddValue}
-                      disabled={quickAddBusy}
-                      className="text-sm"
-                      onChange={(e) => setQuickAddValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          void submitQuickAdd();
-                        }
-                        if (e.key === 'Escape') {
-                          e.preventDefault();
-                          cancelQuickAdd();
-                        }
-                      }}
-                    />
-                  ) : null}
-
                   <DroppableColumn droppableId={getColumnDroppableId(col)}>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {col.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {colTasks.length}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        {canMutateColumns ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              aria-label="Move column left"
+                              disabled={index === 0 || pending}
+                              onClick={() => onReorderColumn(col.id, 'left')}
+                            >
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              aria-label="Move column right"
+                              disabled={index >= columns.length - 1 || pending}
+                              onClick={() => onReorderColumn(col.id, 'right')}
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  aria-label="Column actions"
+                                >
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    setRenameTarget(col);
+                                    setRenameValue(col.name);
+                                    setRenameOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  disabled={columns.length <= 1}
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    setDeleteTarget(col);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </>
+                        ) : null}
+                        {canMutate ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            aria-label={`Add task in ${col.name}`}
+                            onClick={() => {
+                              if (onQuickAddTask) {
+                                setQuickAddColumnId(col.id);
+                                setQuickAddValue('');
+                              } else {
+                                onAddTask(col.id);
+                              }
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {canMutate && onQuickAddTask && quickAddColumnId === col.id ? (
+                      <Input
+                        ref={quickInputRef}
+                        placeholder="Task name…"
+                        value={quickAddValue}
+                        disabled={quickAddBusy}
+                        className="text-sm"
+                        onChange={(e) => setQuickAddValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void submitQuickAdd();
+                          }
+                          if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelQuickAdd();
+                          }
+                        }}
+                      />
+                    ) : null}
+
+                    <div className="flex flex-1 flex-col gap-2 pt-1">
                       {colTasks.map((task) => {
                         const allowDrag = canDragTask?.(task) ?? canMutate;
                         const allowEdit = canEditTask?.(task) ?? canMutate;

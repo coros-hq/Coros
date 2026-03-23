@@ -45,6 +45,10 @@ export class Employee extends BaseEntity {
   @Column({ name: 'manager_id', type: 'uuid', nullable: true })
   managerId?: string;
 
+  @ManyToOne(() => Employee, { nullable: true, createForeignKeyConstraints: false })
+  @JoinColumn({ name: 'manager_id' })
+  manager?: Employee;
+
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;
 

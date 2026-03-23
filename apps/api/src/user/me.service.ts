@@ -8,6 +8,7 @@ import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { Employee } from '../employee/entities/employee.entity';
 import { Department } from '../department/entities/department.entity';
 import { Position } from '../position/entities/position.entity';
+import { Task } from '../task/entities/task.entity';
 import { EmploymentType, Status } from '@org/shared-types';
 import { SetupAccountDto } from './dto/setup-account.dto';
 
@@ -18,6 +19,8 @@ export class MeService {
     private readonly dataSource: DataSource,
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    @InjectRepository(Task)
+    private readonly taskRepository: Repository<Task>,
   ) {}
 
   async getEmployee(
@@ -32,6 +35,27 @@ export class MeService {
       throw new NotFoundException('Employee profile not found');
     }
     return employee;
+  }
+
+  async getMyTasks(
+    userId: string,
+    organizationId: string,
+  ) {
+    const employee = await this.employeeRepository.findOne({
+      where: { userId, organizationId, deletedAt: IsNull() },
+    });
+    if (!employee) {
+      return [];
+    }
+    const tasks = await this.taskRepository.find({
+      where: {
+        assigneeId: employee.id,
+        organizationId,
+      },
+      relations: ['assignee', 'assignee.user', 'kanbanColumn', 'project'],
+      order: { dueDate: 'ASC', createdAt: 'DESC' },
+    });
+    return tasks;
   }
 
   async getSetupStatus(

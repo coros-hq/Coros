@@ -49,7 +49,8 @@ export class S3StorageProvider {
       })
     );
 
-    const url = `${this.endpoint}/${this.bucket}/${key}`;
+    const projectUrl = this.endpoint.replace('/storage/v1/s3', '');
+    const url = `${projectUrl}/storage/v1/object/public/${this.bucket}/${key}`;
     return { url, key };
   }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -92,7 +92,7 @@ export function TaskDetailPanel({
     setDueDate(task.dueDate ?? undefined);
     setAssigneeId(task.assigneeId ?? '');
     setError(null);
-  }, [task?.id, columns]);
+  }, [task, columns]);
 
   async function patch(dto: UpdateTaskDto) {
     if (!task || !canMutate) return;
@@ -138,10 +138,6 @@ export function TaskDetailPanel({
               value={name}
               disabled={!canMutate || saving}
               onChange={(e) => setName(e.target.value)}
-              onBlur={() => {
-                const t = name.trim();
-                if (t && t !== task.name) void patch({ name: t });
-              }}
             />
           </div>
 
@@ -154,11 +150,6 @@ export function TaskDetailPanel({
               value={description}
               disabled={!canMutate || saving}
               onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => {
-                const d = description.trim();
-                const prev = (task.description ?? '').trim();
-                if (d !== prev) void patch({ description: d || null });
-              }}
             />
           </div>
 
@@ -170,10 +161,7 @@ export function TaskDetailPanel({
                   <Select
                     value={kanbanColumnId || columns[0]?.id}
                     disabled={!canMutate || saving}
-                    onValueChange={(v) => {
-                      setKanbanColumnId(v);
-                      void patch({ kanbanColumnId: v });
-                    }}
+                    onValueChange={(v) => setKanbanColumnId(v)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -193,11 +181,7 @@ export function TaskDetailPanel({
                   <Select
                     value={status}
                     disabled={!canMutate || saving}
-                    onValueChange={(v) => {
-                      const next = v as TaskStatus;
-                      setStatus(next);
-                      void patch({ status: next });
-                    }}
+                    onValueChange={(v) => setStatus(v as TaskStatus)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -218,11 +202,7 @@ export function TaskDetailPanel({
               <Select
                 value={priority}
                 disabled={!canMutate || saving}
-                onValueChange={(v) => {
-                  const next = v as TaskPriority;
-                  setPriority(next);
-                  void patch({ priority: next });
-                }}
+                onValueChange={(v) => setPriority(v as TaskPriority)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -243,10 +223,7 @@ export function TaskDetailPanel({
             <DatePicker
               value={dueDate}
               disabled={!canMutate || saving}
-              onChange={(d) => {
-                setDueDate(d);
-                void patch({ dueDate: d ?? null });
-              }}
+              onChange={(d) => setDueDate(d)}
               placeholder="No due date"
             />
           </div>
@@ -256,11 +233,9 @@ export function TaskDetailPanel({
             <Select
               value={assigneeId ? assigneeId : 'none'}
               disabled={!canMutate || saving}
-              onValueChange={(v) => {
-                const next = v === 'none' ? '' : v;
-                setAssigneeId(next);
-                void patch({ assigneeId: next || null });
-              }}
+              onValueChange={(v) =>
+                setAssigneeId(v === 'none' ? '' : v)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Unassigned" />
@@ -283,7 +258,30 @@ export function TaskDetailPanel({
           </div>
 
           {canMutate ? (
-            <div className="mt-auto border-t pt-4">
+            <div className="mt-auto flex flex-col gap-2 border-t pt-4">
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  const dto: UpdateTaskDto = {
+                    name: name.trim(),
+                    description: description.trim() || null,
+                    priority,
+                    dueDate: dueDate ?? null,
+                    assigneeId: assigneeId || null,
+                  };
+                  if (useColumns) {
+                    dto.kanbanColumnId =
+                      kanbanColumnId || columns[0]?.id || null;
+                  } else {
+                    dto.status = status;
+                  }
+                  void patch(dto);
+                }}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? 'Saving…' : 'Update'}
+              </Button>
               <Button
                 type="button"
                 variant="destructive"

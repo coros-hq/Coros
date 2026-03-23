@@ -316,9 +316,67 @@ export class ProjectService {
     projectId: string,
   ): Promise<ProjectKanbanColumn[]> {
     await this.ensureKanbanColumns(organizationId, projectId);
+    await this.dedupeKanbanColumnsByDuplicateStatusKeys(projectId);
     return this.kanbanColumnRepository.find({
       where: { projectId },
       order: { position: 'ASC' },
+    });
+  }
+
+  /**
+   * Merges accidental duplicate columns that share the same statusKey (e.g. two "Done"
+   * defaults). Keeps the lowest-position column and moves tasks off the others.
+   */
+  private async dedupeKanbanColumnsByDuplicateStatusKeys(
+    projectId: string,
+  ): Promise<void> {
+    const columns = await this.kanbanColumnRepository.find({
+      where: { projectId },
+      order: { position: 'ASC' },
+    });
+    const byKey = new Map<string, ProjectKanbanColumn[]>();
+    for (const c of columns) {
+      if (!c.statusKey) continue;
+      const list = byKey.get(c.statusKey) ?? [];
+      list.push(c);
+      byKey.set(c.statusKey, list);
+    }
+    let hasDupes = false;
+    for (const [, group] of byKey) {
+      if (group.length > 1) {
+        hasDupes = true;
+        break;
+      }
+    }
+    if (!hasDupes) return;
+
+    await this.dataSource.transaction(async (manager) => {
+      const taskRepo = manager.getRepository(Task);
+      const colRepo = manager.getRepository(ProjectKanbanColumn);
+      for (const [, group] of byKey) {
+        if (group.length <= 1) continue;
+        const sorted = [...group].sort((a, b) => a.position - b.position);
+        const keeper = sorted[0];
+        if (!keeper) continue;
+        for (const victim of sorted.slice(1)) {
+          await taskRepo.update(
+            { projectId, kanbanColumnId: victim.id },
+            { kanbanColumnId: keeper.id },
+          );
+          await colRepo.delete({ id: victim.id, projectId });
+        }
+      }
+      const remaining = await colRepo.find({
+        where: { projectId },
+        order: { position: 'ASC' },
+      });
+      for (let i = 0; i < remaining.length; i++) {
+        const col = remaining[i];
+        if (!col) continue;
+        if (col.position !== i) {
+          await colRepo.update({ id: col.id, projectId }, { position: i });
+        }
+      }
     });
   }
 

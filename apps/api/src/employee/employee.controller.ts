@@ -30,6 +30,15 @@ export class EmployeeController {
     return await this.employeeService.getEmployees(organizationId);
   }
 
+  @Get(':id/tasks')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  async getEmployeeTasks(
+    @Param('id') id: string,
+    @CurrentUser('organizationId') organizationId: string
+  ) {
+    return await this.employeeService.getTasksByEmployeeId(id, organizationId);
+  }
+
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   async getEmployee(

@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { createPortal } from 'react-dom';
 import { differenceInDays, format, parseISO, isValid } from 'date-fns';
-import { Ban, CalendarDays, Check, MoreHorizontal, Pencil, X } from 'lucide-react';
+import { Ban, CalendarDays, Check, List, MoreHorizontal, Pencil, X } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { DataTable } from '~/components/data-table/DataTable';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,7 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet';
 import { cn } from '~/lib/utils';
+import { LeaveCalendar } from '~/components/leave-requests/LeaveCalendar';
 import { LeaveRequestForm } from '~/components/leave-requests/LeaveRequestForm';
 import { useLeaveRequests } from '~/hooks/useLeaveRequests';
 import { useAuthStore } from '~/stores/auth.store';
@@ -155,6 +157,7 @@ export default function LeaveRequestsPage() {
   const [editingRequest, setEditingRequest] = useState<ApiLeaveRequest | null>(null);
   const [statusFilter, setStatusFilter] = useState<RequestStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -189,6 +192,11 @@ export default function LeaveRequestsPage() {
       return true;
     });
   }, [rows, statusFilter, typeFilter]);
+
+  const filteredRequests = useMemo(
+    () => filteredRows.map((r) => r.raw),
+    [filteredRows]
+  );
 
   const columns = useMemo<ColumnDef<LeaveRequestRow>[]>(
     () => [
@@ -452,10 +460,29 @@ export default function LeaveRequestsPage() {
     <>
       {portalReady && headerPortal.current
         ? createPortal(
-            <div className="flex w-full items-center justify-between">
-              <h1 className="text-lg font-bold text-foreground">
-                Leave Requests
-              </h1>
+            <div className="flex w-full flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-bold text-foreground">
+                  Leave Requests
+                </h1>
+                <Tabs
+                  value={viewMode}
+                  onValueChange={(v) =>
+                    setViewMode(v === 'list' ? 'list' : 'calendar')
+                  }
+                >
+                  <TabsList className="h-8">
+                    <TabsTrigger value="calendar" className="gap-1.5 text-xs">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      Calendar
+                    </TabsTrigger>
+                    <TabsTrigger value="list" className="gap-1.5 text-xs">
+                      <List className="h-3.5 w-3.5" />
+                      List
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               <Button
                 className="bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                 size="sm"
@@ -523,6 +550,58 @@ export default function LeaveRequestsPage() {
               Submit your first leave request
             </p>
             <Button onClick={() => setSheetOpen(true)}>+ Request leave</Button>
+          </div>
+        ) : viewMode === 'calendar' ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-nowrap items-center gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) =>
+                  setStatusFilter((v ?? 'all') as RequestStatus | 'all')
+                }
+              >
+                <SelectTrigger className="w-[10.5rem] shrink-0 border-border bg-background md:w-44">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_FILTER_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={typeFilter}
+                onValueChange={(v) => setTypeFilter(v ?? 'all')}
+              >
+                <SelectTrigger className="w-[10.5rem] shrink-0 border-border bg-background md:w-44">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_FILTER_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                className="shrink-0 gap-1.5"
+                onClick={() => setSheetOpen(true)}
+              >
+                <CalendarDays className="h-4 w-4 shrink-0" />
+                Request leave
+              </Button>
+            </div>
+            <LeaveCalendar
+              requests={filteredRequests}
+              onApprove={approve}
+              onReject={reject}
+              onCancel={cancel}
+              currentEmployeeId={employee?.id}
+              isAdmin={isAdmin}
+            />
           </div>
         ) : (
           <DataTable<LeaveRequestRow>

@@ -15,7 +15,7 @@ export class OrganizationsController {
   }
 
   @Patch('me')
-  @Roles(Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   async updateMe(
     @CurrentUser('organizationId') organizationId: string,
     @Body() dto: UpdateOrganizationDto

@@ -30,6 +30,10 @@ export class UpdateEmployeeDto {
 
   @IsString()
   @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
   avatar?: string;
 
   @IsDateString()
