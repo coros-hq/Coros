@@ -22,6 +22,10 @@ Self-host it on your own infrastructure, or use the cloud-hosted version — sam
 - 🧑‍💼 **Employee Profiles** — contracts, status, history
 - 📁 **Document Management** — upload, assign, organize
 - 📋 **Projects & Tasks** — kanban board, assignments, priorities
+- 📢 **Announcements** — organization-wide updates and reads
+- 🔔 **Notifications** — in-app notification center and activity feed
+- 🔎 **Global Search** — cross-module search for fast navigation
+- 📈 **Reports & Insights** — dashboard metrics and visual summaries
 - 🔐 **Role-based Access Control** — Admin, Manager, Employee
 - 🏢 **Multi-tenant** — manage multiple organizations
 - 🐳 **Self-host in minutes** — single Docker Compose command
@@ -67,7 +71,7 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 
 # Run both apps
-npx nx run-many --target=serve --projects=web,api
+pnpm nx run-many --target=serve --projects=web,api
 ```
 
 Visit `http://localhost:5173` for the web app and `http://localhost:3000/api` for the API.
@@ -92,11 +96,12 @@ coros/
 ## Roadmap
 
 - [x] Project setup and architecture
-- [ ] Auth system (JWT + RBAC)
-- [ ] HR and Employee management
-- [ ] Document management
-- [ ] Projects and Tasks
-- [ ] Dashboard and notifications
+- [x] Auth system (JWT + RBAC)
+- [x] HR and Employee management
+- [x] Document management
+- [x] Projects and Tasks
+- [x] Dashboard and notifications
+- [ ] Reporting and analytics expansion
 - [ ] Production Docker setup
 - [ ] Landing page and public launch
 
