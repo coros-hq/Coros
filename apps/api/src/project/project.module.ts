@@ -7,6 +7,8 @@ import { Task } from '../task/entities/task.entity';
 import { Employee } from '../employee/entities/employee.entity';
 import { ProjectService } from './project.service';
 import { ProjectController } from './project.controller';
+import { NotificationModule } from '../notification/notification.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { ProjectController } from './project.controller';
       Employee,
       Task,
     ]),
+    NotificationModule,
+    EmailModule,
   ],
   controllers: [ProjectController],
   providers: [ProjectService],

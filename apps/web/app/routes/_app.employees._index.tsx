@@ -2,7 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
-import { MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
+import {
+  LayoutGrid,
+  LayoutList,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  UserPlus,
+} from 'lucide-react';
 
 import {
   AlertDialog,
@@ -14,10 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { DataTable } from '~/components/data-table/DataTable';
+import { Input } from '~/components/ui/input';
+import { Skeleton } from '~/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +48,9 @@ import {
 } from '~/components/ui/sheet';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '~/lib/utils';
+import { convertToCSV, downloadCSV } from '~/lib/csv';
+import { ExportButton } from '~/components/common/ExportButton';
+import { EmployeeCard } from '~/components/employees/EmployeeCard';
 import { EmployeeForm } from '~/components/employees/EmployeeForm';
 import { useEmployees } from '~/hooks/useEmployees';
 import { useAuthStore } from '~/stores/auth.store';
@@ -148,6 +160,11 @@ export default function EmployeesIndexPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<RowStatus | 'all'>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'table';
+    return localStorage.getItem('employees_view') === 'grid' ? 'grid' : 'table';
+  });
 
   const {
     employees,
@@ -164,11 +181,16 @@ export default function EmployeesIndexPage() {
 
   const user = useAuthStore((s) => s.user);
   const canMutate = user?.role === 'admin' || user?.role === 'super_admin';
+  const canExport = user?.role === 'admin' || user?.role === 'super_admin';
 
   useEffect(() => {
     headerPortal.current = document.getElementById('page-header');
     setPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('employees_view', viewMode);
+  }, [viewMode]);
 
   const rows = useMemo(() => employees.map(mapEmployee), [employees]);
 
@@ -180,6 +202,82 @@ export default function EmployeesIndexPage() {
       return true;
     });
   }, [rows, statusFilter, departmentFilter]);
+
+  const displayRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return filteredRows;
+    return filteredRows.filter((row) =>
+      Object.values(row as Record<string, unknown>).some((v) =>
+        String(v ?? '').toLowerCase().includes(q)
+      )
+    );
+  }, [filteredRows, searchQuery]);
+
+  const deptColorById = useMemo(() => {
+    const m: Record<string, string | undefined> = {};
+    for (const d of departments) {
+      m[d.id] = d.color;
+    }
+    return m;
+  }, [departments]);
+
+  const handleExportEmployees = () => {
+    const formatEmploymentType = (type?: string) => {
+      if (!type) return '';
+      const t = String(type);
+      const map: Record<string, string> = {
+        full_time: 'Full-time',
+        part_time: 'Part-time',
+        contract: 'Contract',
+        contractor: 'Contractor',
+        intern: 'Intern',
+      };
+      return (
+        map[t] ??
+        t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+      );
+    };
+
+    const formatISODate = (date?: string) => {
+      if (!date) return '';
+      try {
+        return format(new Date(date), 'yyyy-MM-dd');
+      } catch {
+        return '';
+      }
+    };
+
+    const rowsToExport = displayRows.map((r) => r.raw);
+    const csv = convertToCSV(rowsToExport, [
+      {
+        key: 'name',
+        label: 'Name',
+        format: (_v, row) =>
+          `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim(),
+      },
+      { key: 'user.email', label: 'Email', format: (v) => String(v ?? '') },
+      {
+        key: 'department.name',
+        label: 'Department',
+        format: (v) => String(v ?? ''),
+      },
+      { key: 'position.name', label: 'Position', format: (v) => String(v ?? '') },
+      { key: 'status', label: 'Status', format: (v) => String(v ?? '') },
+      {
+        key: 'employmentType',
+        label: 'Employment type',
+        format: (v) => formatEmploymentType(String(v ?? '')),
+      },
+      {
+        key: 'hireDate',
+        label: 'Hire date',
+        format: (v) => formatISODate(String(v ?? '')),
+      },
+      { key: 'phone', label: 'Phone', format: (v) => String(v ?? '') },
+    ]);
+
+    downloadCSV(csv, `employees_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -204,6 +302,13 @@ export default function EmployeesIndexPage() {
           return (
             <div className="flex items-center gap-2.5">
               <Avatar className="h-7 w-7 ring-2 ring-purple ring-offset-2 ring-offset-canvas">
+                {row.original.raw.avatar ? (
+                  <AvatarImage
+                    alt={row.original.name}
+                    src={row.original.raw.avatar}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : null}
                 <AvatarFallback className="bg-muted text-2xs font-semibold text-foreground">
                   {initials}
                 </AvatarFallback>
@@ -293,6 +398,7 @@ export default function EmployeesIndexPage() {
       departmentId: values.departmentId!,
       positionId: values.positionId!,
     };
+    if ('avatar' in values && values.avatar) payload.avatar = values.avatar;
     if (values.managerId) payload.managerId = values.managerId;
     if (values.employmentType) payload.employmentType = values.employmentType;
     if (values.hireDate) payload.hireDate = values.hireDate;
@@ -310,6 +416,7 @@ export default function EmployeesIndexPage() {
     if (values.lastName !== undefined) payload.lastName = values.lastName;
     if (values.email !== undefined) payload.email = values.email;
     if (values.phone !== undefined) payload.phone = values.phone;
+    if (values.avatar !== undefined) payload.avatar = values.avatar;
     if (values.departmentId !== undefined)
       payload.departmentId = values.departmentId;
     if (values.positionId !== undefined) payload.positionId = values.positionId;
@@ -366,6 +473,31 @@ export default function EmployeesIndexPage() {
           ))}
         </SelectContent>
       </Select>
+      <div className="flex shrink-0 items-center rounded-md border border-border p-0.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('h-8 w-8 shrink-0', viewMode === 'table' && 'bg-accent')}
+          aria-label="Table view"
+          onClick={() => setViewMode('table')}
+        >
+          <LayoutList className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('h-8 w-8 shrink-0', viewMode === 'grid' && 'bg-accent')}
+          aria-label="Card view"
+          onClick={() => setViewMode('grid')}
+        >
+          <LayoutGrid className="h-4 w-4" />
+        </Button>
+      </div>
+      {canExport ? (
+        <ExportButton onExport={handleExportEmployees} label="Export CSV" />
+      ) : null}
       {canMutate && (
         <Button
           className="shrink-0 gap-1.5"
@@ -440,14 +572,72 @@ export default function EmployeesIndexPage() {
           </div>
         ) : null}
 
-        <DataTable<EmployeeRow>
-          columns={columns}
-          data={filteredRows}
-          isLoading={isLoading}
-          searchPlaceholder="Search employees…"
-          toolbar={toolbar}
-          onRowClick={(row) => navigate(`/employees/${row.id}`)}
-        />
+        {viewMode === 'table' ? (
+          <DataTable<EmployeeRow>
+            columns={columns}
+            data={filteredRows}
+            isLoading={isLoading}
+            searchPlaceholder="Search employees…"
+            toolbar={toolbar}
+            globalFilter={searchQuery}
+            onGlobalFilterChange={setSearchQuery}
+            onRowClick={(row) => navigate(`/employees/${row.id}`)}
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+              <Input
+                className="w-[min(100%,18rem)] shrink-0 border-border bg-background md:w-72"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search employees…"
+                value={searchQuery}
+              />
+              <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2">
+                {toolbar}
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[280px] rounded-xl" />
+                ))}
+              </div>
+            ) : displayRows.length === 0 ? (
+              <div className="rounded-lg border border-border bg-background py-12 text-center text-sm text-muted-foreground">
+                No results found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {displayRows.map((row) => (
+                  <EmployeeCard
+                    key={row.id}
+                    employee={row.raw}
+                    canMutate={canMutate}
+                    departmentColor={
+                      deptColorById[row.departmentId] ?? undefined
+                    }
+                    onClick={() => navigate(`/employees/${row.id}`)}
+                    onEdit={() => {
+                      setEditingEmployee(row.raw);
+                      setSheetOpen(true);
+                    }}
+                    onDelete={() => setEmployeeToDelete(row)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!isLoading ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-foreground">
+                  {displayRows.length} result
+                  {displayRows.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>

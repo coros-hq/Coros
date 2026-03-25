@@ -31,6 +31,14 @@ export enum EmploymentType {
   INTERN = 'intern',
 }
 
+/** Contract record type (may differ from `EmploymentType`; includes `contractor`). */
+export enum ContractType {
+  FULL_TIME = 'full_time',
+  PART_TIME = 'part_time',
+  CONTRACTOR = 'contractor',
+  INTERN = 'intern',
+}
+
 export enum LeaveType {
   VACATION = 'vacation',
   SICK = 'sick',
@@ -73,5 +81,21 @@ export enum TaskPriority {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
+  URGENT = 'urgent',
+}
+
+export enum NotificationType {
+  LEAVE_REQUEST_SUBMITTED = 'leave_request_submitted',
+  LEAVE_REQUEST_APPROVED = 'leave_request_approved',
+  LEAVE_REQUEST_REJECTED = 'leave_request_rejected',
+  TASK_ASSIGNED = 'task_assigned',
+  PROJECT_MEMBER_ADDED = 'project_member_added',
+  EMPLOYEE_CREATED = 'employee_created',
+  ANNOUNCEMENT_PUBLISHED = 'announcement_published',
+}
+
+export enum AnnouncementPriority {
+  NORMAL = 'normal',
+  IMPORTANT = 'important',
   URGENT = 'urgent',
 }

@@ -6,6 +6,8 @@ export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export interface ApiTask {
   id: string;
   name: string;
+  /** Per-project sequence for display slugs (with project key). */
+  number?: number;
   description?: string | null;
   status: TaskStatus;
   priority: TaskPriority;
@@ -14,6 +16,8 @@ export interface ApiTask {
   assigneeId?: string | null;
   organizationId: string;
   createdAt?: string;
+  /** Present when API returns full task entity (e.g. completion time for reports). */
+  updatedAt?: string;
   kanbanColumnId?: string | null;
   kanbanColumn?: {
     id: string;
@@ -29,7 +33,21 @@ export interface ApiTask {
   project?: {
     id: string;
     name: string;
+    key?: string | null;
   };
+}
+
+export interface ApiTaskComment {
+  id: string;
+  content: string;
+  taskId: string;
+  authorId: string;
+  author: {
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  createdAt: string;
 }
 
 export interface CreateTaskDto {
@@ -101,6 +119,81 @@ export async function remove(
 ): Promise<{ message: string }> {
   return api.delete<{ message: string }>(
     `/projects/${projectId}/tasks/${taskId}`
+  );
+}
+
+function normalizeComment(raw: {
+  id: string;
+  content: string;
+  taskId: string;
+  projectId?: string;
+  createdAt: string;
+  author: { id: string; firstName: string; lastName: string; email: string };
+}): ApiTaskComment {
+  return {
+    id: raw.id,
+    content: raw.content,
+    taskId: raw.taskId,
+    authorId: raw.author.id,
+    author: {
+      email: raw.author.email,
+      firstName: raw.author.firstName,
+      lastName: raw.author.lastName,
+    },
+    createdAt: raw.createdAt,
+  };
+}
+
+export async function getComments(
+  projectId: string,
+  taskId: string
+): Promise<ApiTaskComment[]> {
+  const rows = await api.get<
+    {
+      id: string;
+      content: string;
+      taskId: string;
+      projectId: string;
+      createdAt: string;
+      author: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+    }[]
+  >(`/projects/${projectId}/tasks/${taskId}/comments`);
+  return rows.map(normalizeComment);
+}
+
+export async function createComment(
+  projectId: string,
+  taskId: string,
+  content: string
+): Promise<ApiTaskComment> {
+  const raw = await api.post<{
+    id: string;
+    content: string;
+    taskId: string;
+    projectId: string;
+    createdAt: string;
+    author: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }>(`/projects/${projectId}/tasks/${taskId}/comments`, { content });
+  return normalizeComment(raw);
+}
+
+export async function deleteComment(
+  projectId: string,
+  taskId: string,
+  commentId: string
+): Promise<{ message: string }> {
+  return api.delete<{ message: string }>(
+    `/projects/${projectId}/tasks/${taskId}/comments/${commentId}`
   );
 }
 

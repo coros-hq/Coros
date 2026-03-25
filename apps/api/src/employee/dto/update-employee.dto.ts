@@ -67,8 +67,4 @@ export class UpdateEmployeeDto {
   @IsUUID()
   @IsOptional()
   departmentId?: string;
-
-  @IsUUID()
-  @IsOptional()
-  contractId?: string;
 }

@@ -88,3 +88,43 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+@layer components {
+  /* Tiptap / ProseMirror */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .ProseMirror ul,
+  .ProseMirror ol {
+    padding-left: 1.25rem;
+  }
+
+  .ProseMirror ul {
+    list-style-type: disc;
+  }
+
+  .ProseMirror ol {
+    list-style-type: decimal;
+  }
+
+  .ProseMirror code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-xs;
+  }
+
+  .ProseMirror pre {
+    @apply rounded-md bg-muted p-3 font-mono text-xs;
+  }
+
+  .ProseMirror pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .ProseMirror strong {
+    @apply font-semibold;
+  }
+}

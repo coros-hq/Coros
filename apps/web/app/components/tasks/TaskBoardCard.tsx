@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import { htmlToPlainText } from '~/lib/html';
 import type { ApiTask } from '~/services/task.service';
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -106,7 +107,7 @@ export function TaskBoardCard({
           </h4>
           {task.description ? (
             <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-              {task.description}
+              {htmlToPlainText(task.description)}
             </p>
           ) : null}
         </div>

@@ -8,6 +8,10 @@ import {
   Settings,
   LogOut,
   Target,
+  GitBranch,
+  BarChart2,
+  Megaphone,
+  Star,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
@@ -26,11 +30,22 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '~/components/ui/sidebar';
+import { GlobalSearch } from '~/components/search/GlobalSearch';
+import { NotificationBell } from '~/components/notifications/NotificationBell';
 import { SidebarDepartmentsSection } from '~/components/layout/SidebarDepartmentsSection';
 import { authService } from '~/services/auth.service';
 import { setupService } from '~/services/setup.service';
 import { useAuthStore } from '~/stores/auth.store';
+import { ROLES_MANAGEMENT } from '~/lib/nav-roles';
 import type { LucideIcon } from 'lucide-react';
+
+function canSeeNavItem(
+  role: string | undefined,
+  itemRoles?: readonly string[]
+): boolean {
+  if (!itemRoles?.length) return true;
+  return role != null && itemRoles.includes(role);
+}
 
 export async function clientLoader() {
   const { isAuthenticated, setAuth, setLoading } = useAuthStore.getState();
@@ -63,20 +78,48 @@ export async function clientLoader() {
 
 const NAV_GROUPS: {
   label: string | null;
-  items: { href: string; label: string; icon: LucideIcon }[];
-  roles?: readonly string[];
+  items: {
+    href: string;
+    label: string;
+    icon: LucideIcon;
+    roles?: readonly string[];
+  }[];
 }[] = [
   {
     label: null,
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/announcements', label: 'Announcements', icon: Megaphone },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      {
+        href: '/reports',
+        label: 'Reports',
+        icon: BarChart2,
+        roles: ['super_admin', 'admin'] as const,
+      },
+
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
   {
     label: 'People',
     items: [
-      { href: '/employees', label: 'Employees', icon: Users },
+      {
+        href: '/employees',
+        label: 'Employees',
+        icon: Users,
+        roles: ROLES_MANAGEMENT,
+      },
+      {
+        href: '/org-chart',
+        label: 'Org Chart',
+        icon: GitBranch,
+        roles: ROLES_MANAGEMENT,
+      },
       { href: '/leave-requests', label: 'Leave Requests', icon: CalendarDays },
     ],
   },
@@ -131,15 +174,17 @@ export default function AppLayout() {
 
         <SidebarContent className="flex-1 w-full">
           {NAV_GROUPS.map((group, gi) => {
-            if (group.roles && user && !group.roles.includes(user.role))
-              return null;
+            const visibleItems = group.items.filter((item) =>
+              canSeeNavItem(user?.role, item.roles)
+            );
+            if (visibleItems.length === 0) return null;
             return (
               <SidebarGroup key={gi}>
                 {group.label ? (
                   <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
                 ) : null}
                 <SidebarMenu>
-                  {group.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const isActive =
                       item.href === '/'
                         ? location.pathname === '/'
@@ -202,6 +247,8 @@ export default function AppLayout() {
         <header className="flex min-h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-5 py-2">
           <SidebarTrigger className="-ml-1" />
           <div className="flex flex-1 items-center gap-3" id="page-header" />
+          <GlobalSearch />
+          <NotificationBell />
         </header>
         <div className="flex-1 overflow-y-auto bg-background text-sm text-foreground">
           <Outlet />

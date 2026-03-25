@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   ArrowLeft,
@@ -44,7 +44,7 @@ import {
   TableRow,
 } from '~/components/ui/table';
 import { KanbanBoard } from '~/components/tasks/KanbanBoard';
-import { TaskDetailPanel } from '~/components/tasks/TaskDetailPanel';
+import { TaskDetailSheet } from '~/components/tasks/TaskDetailSheet';
 import { TaskForm, type TaskFormValues } from '~/components/tasks/TaskForm';
 import { useKanbanColumns } from '~/hooks/useKanbanColumns';
 import { useProjectDetail } from '~/hooks/useProjectDetail';
@@ -93,8 +93,8 @@ export default function ProjectTasksPage() {
   const headerPortal = useRef<Element | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
-  const [panelTaskId, setPanelTaskId] = useState<string | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<ApiTask | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<ApiTask | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
@@ -136,16 +136,24 @@ export default function ProjectTasksPage() {
     setPortalReady(true);
   }, []);
 
+  const resolvedTask = useMemo(
+    () =>
+      selectedTask
+        ? tasks.find((t) => t.id === selectedTask.id) ?? selectedTask
+        : null,
+    [tasks, selectedTask]
+  );
+
   useEffect(() => {
     if (
-      taskPanelOpen &&
-      panelTaskId &&
-      !tasks.some((t) => t.id === panelTaskId)
+      detailSheetOpen &&
+      selectedTask &&
+      !tasks.some((t) => t.id === selectedTask.id)
     ) {
-      setTaskPanelOpen(false);
-      setPanelTaskId(null);
+      setDetailSheetOpen(false);
+      setSelectedTask(null);
     }
-  }, [taskPanelOpen, panelTaskId, tasks]);
+  }, [detailSheetOpen, selectedTask, tasks]);
 
   const handleCreateSubmit = async (values: TaskFormValues) => {
     await create({
@@ -160,9 +168,9 @@ export default function ProjectTasksPage() {
     setSheetOpen(false);
   };
 
-  const openTaskPanel = (task: ApiTask) => {
-    setPanelTaskId(task.id);
-    setTaskPanelOpen(true);
+  const openTaskDetail = (task: ApiTask) => {
+    setSelectedTask(task);
+    setDetailSheetOpen(true);
   };
 
   const handleMoveTask = async (taskId: string, columnId: string) => {
@@ -211,14 +219,7 @@ export default function ProjectTasksPage() {
       !!user?.id &&
       task.assignee?.user?.id === user.id);
 
-  const panelTask = panelTaskId
-    ? tasks.find((t) => t.id === panelTaskId) ?? null
-    : null;
-
-  const handleTaskPanelUpdate = async (
-    taskId: string,
-    dto: UpdateTaskDto
-  ) => {
+  const handleTaskUpdate = async (taskId: string, dto: UpdateTaskDto) => {
     await update(taskId, dto);
   };
 
@@ -227,9 +228,9 @@ export default function ProjectTasksPage() {
     setDeleteError(null);
     try {
       await remove(taskToDelete.id);
-      if (panelTaskId === taskToDelete.id) {
-        setTaskPanelOpen(false);
-        setPanelTaskId(null);
+      if (selectedTask?.id === taskToDelete.id) {
+        setDetailSheetOpen(false);
+        setSelectedTask(null);
       }
       setTaskToDelete(null);
     } catch (err) {
@@ -293,7 +294,6 @@ export default function ProjectTasksPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      setEditingTask(null);
                       setDefaultColumnId(columns[0]?.id ?? '');
                       setSheetOpen(true);
                     }}
@@ -347,6 +347,7 @@ export default function ProjectTasksPage() {
               <KanbanBoard
                 columns={columns}
                 tasks={tasks}
+                projectKey={project?.key}
                 canMutate={canMutate}
                 canMutateColumns={canMutate}
                 canDragTask={canDragOrEditTask}
@@ -358,7 +359,7 @@ export default function ProjectTasksPage() {
                 }}
                 onQuickAddTask={handleQuickAddTask}
                 onMoveTask={handleMoveTask}
-                onEditTask={openTaskPanel}
+                onEditTask={openTaskDetail}
                 onDeleteTask={(task) => setTaskToDelete(task)}
                 onCreateColumn={handleCreateColumn}
                 onRenameColumn={handleRenameColumn}
@@ -380,6 +381,11 @@ export default function ProjectTasksPage() {
                   </TableHeader>
                   <TableBody>
                     {tasks.map((task) => {
+                      const slugKey = project?.key ?? task.project?.key ?? '';
+                      const slug =
+                        slugKey && task.number != null
+                          ? `${slugKey}-${task.number}`
+                          : null;
                       const assigneeName = task.assignee
                         ? `${task.assignee.firstName} ${task.assignee.lastName}`
                         : '—';
@@ -398,16 +404,21 @@ export default function ProjectTasksPage() {
                           role="button"
                           tabIndex={0}
                           className="cursor-pointer transition-colors hover:bg-muted/50"
-                          onClick={() => openTaskPanel(task)}
+                          onClick={() => openTaskDetail(task)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              openTaskPanel(task);
+                              openTaskDetail(task);
                             }
                           }}
                         >
                           <TableCell>
                             <div className="flex flex-col gap-0.5">
+                              {slug ? (
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  {slug}
+                                </span>
+                              ) : null}
                               <span className="font-medium text-foreground">
                                 {task.name}
                               </span>
@@ -455,7 +466,7 @@ export default function ProjectTasksPage() {
                                   <DropdownMenuItem
                                     onSelect={(e) => {
                                       e.preventDefault();
-                                      openTaskPanel(task);
+                                      openTaskDetail(task);
                                     }}
                                   >
                                     <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -482,7 +493,7 @@ export default function ProjectTasksPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => openTaskPanel(task)}
+                                onClick={() => openTaskDetail(task)}
                               >
                                 Edit
                               </Button>
@@ -500,26 +511,26 @@ export default function ProjectTasksPage() {
       </div>
 
       {project ? (
-        <TaskDetailPanel
-          task={panelTask}
-          open={taskPanelOpen}
+        <TaskDetailSheet
+          task={resolvedTask}
+          open={detailSheetOpen}
           onOpenChange={(open) => {
-            if (!open) {
-              setPanelTaskId(null);
-            }
-            setTaskPanelOpen(open);
+            setDetailSheetOpen(open);
+            if (!open) setSelectedTask(null);
           }}
+          projectId={projectId}
+          projectKey={project.key}
           members={project.members ?? []}
           columns={columns}
           canMutate={
-            !!panelTask &&
+            !!resolvedTask &&
             (canMutate ||
               (canUpdateOwnTasks &&
-                !!panelTask.assigneeId &&
+                !!resolvedTask.assigneeId &&
                 !!user?.id &&
-                panelTask.assignee?.user?.id === user.id))
+                resolvedTask.assignee?.user?.id === user.id))
           }
-          onUpdate={handleTaskPanelUpdate}
+          onUpdate={handleTaskUpdate}
           onDelete={(task) => setTaskToDelete(task)}
         />
       ) : null}

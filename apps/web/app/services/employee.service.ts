@@ -6,6 +6,7 @@ export interface ApiEmployee {
   firstName: string;
   lastName: string;
   phone?: string;
+  avatar?: string;
   status?: string;
   hireDate?: string;
   dateOfBirth?: string;
@@ -51,6 +52,11 @@ export interface UpdateEmployeePayload {
 
 export async function listEmployees(): Promise<ApiEmployee[]> {
   return api.get<ApiEmployee[]>('/employees');
+}
+
+/** Alias for reports and bulk loaders. */
+export async function getAll(): Promise<ApiEmployee[]> {
+  return listEmployees();
 }
 
 export async function getEmployee(id: string): Promise<ApiEmployee> {

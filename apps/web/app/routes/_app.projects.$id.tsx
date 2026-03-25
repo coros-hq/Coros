@@ -54,7 +54,7 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet';
 import { KanbanBoard } from '~/components/tasks/KanbanBoard';
-import { TaskDetailPanel } from '~/components/tasks/TaskDetailPanel';
+import { TaskDetailSheet } from '~/components/tasks/TaskDetailSheet';
 import { TaskForm } from '~/components/tasks/TaskForm';
 import { TaskListView } from '~/components/tasks/TaskListView';
 import { TaskProgressBar } from '~/components/tasks/TaskProgressBar';
@@ -107,8 +107,8 @@ export default function ProjectDetailPage() {
   const [allEmployees, setAllEmployees] = useState<ApiEmployee[]>([]);
   const [taskSheetOpen, setTaskSheetOpen] = useState(false);
   const [defaultColumnId, setDefaultColumnId] = useState<string>('');
-  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
-  const [panelTaskId, setPanelTaskId] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ApiTask | null>(null);
+  const [taskDetailOpen, setTaskDetailOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<ApiTask | null>(null);
   const [taskDeleteError, setTaskDeleteError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
@@ -213,31 +213,33 @@ export default function ProjectDetailPage() {
     setTaskSheetOpen(open);
   };
 
-  const panelTask = useMemo(
+  const resolvedTask = useMemo(
     () =>
-      panelTaskId ? tasks.find((t) => t.id === panelTaskId) ?? null : null,
-    [tasks, panelTaskId]
+      selectedTask
+        ? tasks.find((t) => t.id === selectedTask.id) ?? selectedTask
+        : null,
+    [tasks, selectedTask]
   );
 
   useEffect(() => {
     if (
-      taskPanelOpen &&
-      panelTaskId &&
-      !tasks.some((t) => t.id === panelTaskId)
+      taskDetailOpen &&
+      selectedTask &&
+      !tasks.some((t) => t.id === selectedTask.id)
     ) {
-      setTaskPanelOpen(false);
-      setPanelTaskId(null);
+      setTaskDetailOpen(false);
+      setSelectedTask(null);
     }
-  }, [taskPanelOpen, panelTaskId, tasks]);
+  }, [taskDetailOpen, selectedTask, tasks]);
 
   const taskCompletedCount = useMemo(
     () => tasks.filter((t) => t.status === 'done').length,
     [tasks]
   );
 
-  const openTaskPanel = (task: ApiTask) => {
-    setPanelTaskId(task.id);
-    setTaskPanelOpen(true);
+  const openTaskDetail = (task: ApiTask) => {
+    setSelectedTask(task);
+    setTaskDetailOpen(true);
   };
 
   const handleTaskPanelUpdate = async (taskId: string, dto: UpdateTaskDto) => {
@@ -309,9 +311,9 @@ export default function ProjectDetailPage() {
     setTaskDeleteError(null);
     try {
       await removeTask(taskToDelete.id);
-      if (panelTaskId === taskToDelete.id) {
-        setTaskPanelOpen(false);
-        setPanelTaskId(null);
+      if (selectedTask?.id === taskToDelete.id) {
+        setTaskDetailOpen(false);
+        setSelectedTask(null);
       }
       setTaskToDelete(null);
     } catch (err) {
@@ -655,6 +657,7 @@ export default function ProjectDetailPage() {
                   <KanbanBoard
                     columns={columns}
                     tasks={tasks}
+                    projectKey={project?.key}
                     canMutate={canMutateTasks}
                     canMutateColumns={canMutateTasks}
                     onAddTask={(columnId) => {
@@ -665,7 +668,7 @@ export default function ProjectDetailPage() {
                     onMoveTask={(taskId, columnId) =>
                       handleMoveTask(taskId, columnId)
                     }
-                    onEditTask={(task) => openTaskPanel(task)}
+                    onEditTask={(task) => openTaskDetail(task)}
                     onDeleteTask={(task) => setTaskToDelete(task)}
                     onCreateColumn={handleCreateColumn}
                     onRenameColumn={handleRenameColumn}
@@ -676,8 +679,9 @@ export default function ProjectDetailPage() {
                   <TaskListView
                     columns={columns}
                     tasks={tasks}
+                    projectKey={project?.key}
                     canMutate={canMutateTasks}
-                    onEditTask={(task) => openTaskPanel(task)}
+                    onEditTask={(task) => openTaskDetail(task)}
                     onDeleteTask={(task) => setTaskToDelete(task)}
                     onQuickAddTask={handleQuickAddTask}
                   />
@@ -725,13 +729,15 @@ export default function ProjectDetailPage() {
       </Sheet>
 
       {project ? (
-        <TaskDetailPanel
-          task={panelTask}
-          open={taskPanelOpen}
+        <TaskDetailSheet
+          task={resolvedTask}
+          open={taskDetailOpen}
           onOpenChange={(open) => {
-            setTaskPanelOpen(open);
-            if (!open) setPanelTaskId(null);
+            setTaskDetailOpen(open);
+            if (!open) setSelectedTask(null);
           }}
+          projectId={id ?? ''}
+          projectKey={project?.key}
           members={project.members ?? []}
           columns={columns}
           canMutate={canMutateTasks}

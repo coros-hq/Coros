@@ -9,35 +9,64 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import {
-  Bell,
+  AlertTriangle,
+  CalendarDays,
   CalendarOff,
   CheckSquare,
   ChevronDown,
   ChevronsUpDown,
   ChevronUp,
+  ClipboardList,
   FolderKanban,
   Search,
-  Settings2,
   Users,
 } from 'lucide-react';
 import { ActiveProjectsRow } from '~/components/dashboard/ActiveProjectsRow';
 import { Greeting } from '~/components/dashboard/Greeting';
 import { MyTasksWidget } from '~/components/dashboard/MyTasksWidget';
+import { EmployeeLeaveRequestsWidget } from '~/components/dashboard/EmployeeLeaveRequestsWidget';
+import { AnnouncementsList } from '~/components/announcements/AnnouncementsList';
+import { OnboardingChecklist } from '~/components/dashboard/OnboardingChecklist';
 import { PendingLeaveRequestsWidget } from '~/components/dashboard/PendingLeaveRequestsWidget';
 import { QuickActions } from '~/components/dashboard/QuickActions';
 import { useEffect, useMemo, useState } from 'react';
+import { differenceInDays, format, isThisMonth } from 'date-fns';
 import { useNavigate } from 'react-router';
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Separator } from '~/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '~/components/ui/sheet';
 import { cn } from '~/lib/utils';
 import type { ApiEmployee } from '~/services/employee.service';
 import { listEmployees } from '~/services/employee.service';
-import { getAllLeaveRequests } from '~/services/leave-request.service';
+import { getAll } from '~/services/department.service';
+import {
+  getAllLeaveRequests,
+  type ApiLeaveRequest,
+} from '~/services/leave-request.service';
+import { getOrganizationMe, updateMe } from '~/services/organization.service';
 import { getAllProjects } from '~/services/project.service';
+import { getMyTasks, type ApiTask } from '~/services/task.service';
+import { listPositions } from '~/services/position.service';
+import { isManagementRole } from '~/lib/nav-roles';
 import { useAuthStore } from '~/stores/auth.store';
+import {
+  contractService,
+  type ApiContract,
+} from '~/services/contract.service';
 
 type RowStatus = 'active' | 'on_leave' | 'inactive';
 
@@ -145,38 +174,106 @@ function CellSecondary({ children }: { children: string }) {
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
+  const isEmployee = user?.role === 'employee';
   const [rows, setRows] = useState<EmployeeRow[]>([]);
+  const [organization, setOrganization] = useState<Awaited<ReturnType<typeof getOrganizationMe>> | null>(null);
   const [pendingLeave, setPendingLeave] = useState(0);
   const [activeProjects, setActiveProjects] = useState(0);
   const [totalTasks, setTotalTasks] = useState(0);
+  const [totalDepartments, setTotalDepartments] = useState(0);
+  const [totalPositions, setTotalPositions] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
+  /** Employee-only: tasks assigned that are not done */
+  const [openTasksCount, setOpenTasksCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<EmployeeRow | null>(null);
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+  const [expiringContracts, setExpiringContracts] = useState<ApiContract[]>([]);
+  const [dashboardLeaveRequests, setDashboardLeaveRequests] = useState<ApiLeaveRequest[]>([]);
+  const [dashboardTasks, setDashboardTasks] = useState<ApiTask[]>([]);
 
   useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const [emps, requests, projects] = await Promise.all([
-          listEmployees(),
-          getAllLeaveRequests().catch(() => []),
-          getAllProjects().catch(() => []),
-        ]);
-        if (cancelled) return;
-        setRows(emps.map(mapEmployee));
-        setPendingLeave(requests.filter((r) => r.status === 'pending').length);
-        setActiveProjects(projects.filter((p) => p.status === 'active').length);
-        setTotalTasks(projects.reduce((s, p) => s + (p.taskCount ?? 0), 0));
+        if (user.role === 'employee') {
+          const [requests, projects, org, myTasks] = await Promise.all([
+            getAllLeaveRequests().catch(() => []),
+            getAllProjects().catch(() => []),
+            getOrganizationMe().catch(() => null),
+            getMyTasks().catch(() => []),
+          ]);
+          if (cancelled) return;
+          setExpiringContracts([]);
+          setRows([]);
+          setDashboardLeaveRequests(requests);
+          setDashboardTasks(myTasks);
+          setPendingLeave(requests.filter((r) => r.status === 'pending').length);
+          setActiveProjects(projects.filter((p) => p.status === 'active').length);
+          setTotalTasks(myTasks.length);
+          setOpenTasksCount(
+            myTasks.filter((t) => t.status !== 'done').length,
+          );
+          setTotalDepartments(0);
+          setTotalPositions(0);
+          setTotalProjects(projects.length);
+          setOrganization(org);
+        } else {
+          const [emps, requests, projects, departments, positions, org] =
+            await Promise.all([
+              listEmployees(),
+              getAllLeaveRequests().catch(() => []),
+              getAllProjects().catch(() => []),
+              getAll().catch(() => []),
+              listPositions().catch(() => []),
+              getOrganizationMe().catch(() => null),
+            ]);
+          if (cancelled) return;
+          setRows(emps.map(mapEmployee));
+          setDashboardLeaveRequests(requests);
+          setDashboardTasks([]);
+          setPendingLeave(requests.filter((r) => r.status === 'pending').length);
+          setActiveProjects(projects.filter((p) => p.status === 'active').length);
+          setTotalTasks(
+            projects.reduce((s, p) => s + (p.taskCount ?? 0), 0),
+          );
+          setOpenTasksCount(0);
+          setTotalDepartments(departments.length);
+          setTotalPositions(positions.length);
+          setTotalProjects(projects.length);
+          setOrganization(org);
+
+          if (user.role === 'admin') {
+            const allContracts = await contractService.getAll().catch(() => []);
+            if (cancelled) return;
+            const expiring = allContracts.filter((c) => {
+              if (!c.endDate) return false;
+              const daysLeft = differenceInDays(new Date(c.endDate), new Date());
+              return daysLeft >= 0 && daysLeft <= 30;
+            });
+            setExpiringContracts(expiring);
+          } else {
+            setExpiringContracts([]);
+          }
+        }
       } catch (e: unknown) {
         if (cancelled) return;
         const msg =
-          e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Failed to load';
+          e && typeof e === 'object' && 'message' in e
+            ? String((e as { message: unknown }).message)
+            : 'Failed to load';
         setError(msg);
         setRows([]);
+        setExpiringContracts([]);
+        setDashboardLeaveRequests([]);
+        setDashboardTasks([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -184,7 +281,16 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
+
+  async function handleDismissChecklist() {
+    setChecklistDismissed(true);
+    try {
+      await updateMe({ isOnboarded: true });
+    } catch {
+      // fail silently — UI already dismissed
+    }
+  }
 
   const todayLabel = useMemo(
     () =>
@@ -269,6 +375,50 @@ export default function DashboardPage() {
   });
 
   const totalEmployees = rows.length;
+  const showEmployeeStats = isEmployee;
+  const showManagementStats = isManagementRole(user?.role);
+
+  const taskChartData = useMemo(() => {
+    const done = dashboardTasks.filter((t) => t.status === 'done').length;
+    const remaining = dashboardTasks.filter((t) => t.status !== 'done').length;
+    const total = done + remaining;
+    const completionRate = total === 0 ? 0 : Math.round((done / total) * 100);
+    return { done, remaining, total, completionRate };
+  }, [dashboardTasks]);
+
+  const leaveMonthData = useMemo(() => {
+    const dayByType = new Map<string, number>();
+    for (const req of dashboardLeaveRequests) {
+      if (!req.startDate || !isThisMonth(new Date(req.startDate))) continue;
+      if (!req.endDate) continue;
+      const days = Math.max(
+        0,
+        differenceInDays(new Date(req.endDate), new Date(req.startDate)) + 1
+      );
+      if (days <= 0) continue;
+      const key = req.type || 'other';
+      dayByType.set(key, (dayByType.get(key) ?? 0) + days);
+    }
+
+    const colorMap: Record<string, string> = {
+      annual: '#10b981',
+      sick: '#f59e0b',
+      unpaid: '#6b7280',
+      maternity: '#8b5cf6',
+      paternity: '#3b82f6',
+      other: '#6b7280',
+    };
+
+    return Array.from(dayByType.entries())
+      .map(([type, days]) => ({
+        type,
+        label: type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        days,
+        fill: colorMap[type] ?? colorMap.other,
+      }))
+      .filter((item) => item.days > 0)
+      .sort((a, b) => b.days - a.days);
+  }, [dashboardLeaveRequests]);
 
   return (
     <div className="min-h-full">
@@ -278,26 +428,6 @@ export default function DashboardPage() {
           <span className="text-muted-foreground">/</span>
           <span className="text-foreground">Overview</span>
         </nav>
-        <div className="flex items-center gap-1">
-          <Button
-            className="h-7 w-7 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <Bell className="size-4" />
-            <span className="sr-only">Notifications</span>
-          </Button>
-          <Button
-            className="h-7 w-7 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <Settings2 className="size-4" />
-            <span className="sr-only">Settings</span>
-          </Button>
-        </div>
       </div>
 
       <div className="space-y-8 p-6">
@@ -307,35 +437,230 @@ export default function DashboardPage() {
             <Greeting />, {user?.firstName ?? 'there'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Here&apos;s what&apos;s happening at {user?.organizationName ?? 'your organization'} today.
+            {isEmployee
+              ? `Here's your work at ${user?.organizationName ?? 'your organization'} today.`
+              : `Here's what's happening at ${user?.organizationName ?? 'your organization'} today.`}
           </p>
         </header>
 
+        <AnnouncementsList />
+
         <QuickActions />
+
+        {isAdmin && !checklistDismissed && organization && !organization.isOnboarded && (
+          <OnboardingChecklist
+            organization={organization}
+            employeeCount={totalEmployees}
+            departmentCount={totalDepartments}
+            positionCount={totalPositions}
+            projectCount={totalProjects}
+            onDismiss={handleDismissChecklist}
+          />
+        )}
 
         {error ? (
           <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
         ) : null}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard icon={Users} label="Total Employees" sub="Team total" value={loading ? '—' : totalEmployees} />
-          <StatCard icon={FolderKanban} label="Active Projects" sub="In progress" value={loading ? '—' : activeProjects} />
-          <StatCard icon={CheckSquare} label="Total Tasks" sub="Across projects" value={loading ? '—' : totalTasks} />
-          <StatCard
-            icon={CalendarOff}
-            label="Leave Requests"
-            sub="Pending approval"
-            value={loading ? '—' : pendingLeave}
-          />
+          {showEmployeeStats ? (
+            <>
+              <StatCard
+                icon={FolderKanban}
+                label="My projects"
+                sub="Active (you're a member)"
+                value={loading ? '—' : activeProjects}
+              />
+              <StatCard
+                icon={CheckSquare}
+                label="Open tasks"
+                sub="Assigned to you, not done"
+                value={loading ? '—' : openTasksCount}
+              />
+              <StatCard
+                icon={ClipboardList}
+                label="Tasks assigned"
+                sub="Total on your plate"
+                value={loading ? '—' : totalTasks}
+              />
+              <StatCard
+                icon={CalendarOff}
+                label="Leave"
+                sub="Your requests pending"
+                value={loading ? '—' : pendingLeave}
+              />
+            </>
+          ) : (
+            <>
+              <StatCard
+                icon={Users}
+                label="Total Employees"
+                sub="Team total"
+                value={loading ? '—' : totalEmployees}
+              />
+              <StatCard
+                icon={FolderKanban}
+                label="Active Projects"
+                sub="In progress"
+                value={loading ? '—' : activeProjects}
+              />
+              <StatCard
+                icon={CheckSquare}
+                label="Total Tasks"
+                sub="Across projects"
+                value={loading ? '—' : totalTasks}
+              />
+              <StatCard
+                icon={CalendarOff}
+                label="Leave Requests"
+                sub="Pending approval"
+                value={loading ? '—' : pendingLeave}
+              />
+            </>
+          )}
         </div>
 
+        {isAdmin && expiringContracts.length > 0 && (
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <h3 className="text-sm font-semibold text-foreground">
+                Contracts expiring soon
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {expiringContracts.map((contract) => (
+                <div
+                  key={contract.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground truncate">
+                      {contract.employee?.firstName} {contract.employee?.lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {contract.type.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-medium text-amber-600">
+                      {differenceInDays(
+                        new Date(contract.endDate!),
+                        new Date()
+                      )}{' '}
+                      days left
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(contract.endDate!), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-2">
-          <MyTasksWidget />
-          <PendingLeaveRequestsWidget />
+          <div className="space-y-4">
+            <MyTasksWidget />
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-foreground">
+                  Tasks this week
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {taskChartData.total === 0 ? (
+                  <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+                    No tasks yet
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative h-[160px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Done', value: taskChartData.done, fill: '#10b981' },
+                              {
+                                name: 'Remaining',
+                                value: taskChartData.remaining,
+                                fill: '#e5e7eb',
+                              },
+                            ]}
+                            dataKey="value"
+                            innerRadius={45}
+                            outerRadius={62}
+                            paddingAngle={2}
+                            strokeWidth={0}
+                          >
+                            <Cell fill="#10b981" />
+                            <Cell fill="#e5e7eb" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <span className="text-xl font-semibold text-foreground">
+                          {taskChartData.completionRate}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                      <span>{taskChartData.done} done</span>
+                      <span>{taskChartData.remaining} remaining</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            {isEmployee ? <EmployeeLeaveRequestsWidget /> : <PendingLeaveRequestsWidget />}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-foreground">
+                  Leave this month
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {leaveMonthData.length === 0 ? (
+                  <div className="flex h-[200px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <CalendarDays className="h-5 w-5" />
+                    <span>No leave this month</span>
+                  </div>
+                ) : (
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={leaveMonthData} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 8 }}>
+                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={86}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip
+                          formatter={(value: number) => [`${value} days`, 'Days']}
+                          cursor={{ fill: 'hsl(var(--muted) / 0.35)' }}
+                        />
+                        <Bar dataKey="days" radius={[4, 4, 4, 4]}>
+                          {leaveMonthData.map((entry) => (
+                            <Cell key={entry.type} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <ActiveProjectsRow />
 
+        {showManagementStats ? (
         <section className="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
           <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-baseline gap-2">
@@ -466,6 +791,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
+        ) : null}
       </div>
 
       <EmployeeSheet employee={selected} onClose={() => setSelected(null)} open={!!selected} />

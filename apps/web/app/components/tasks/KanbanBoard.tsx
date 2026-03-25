@@ -168,6 +168,8 @@ function DraggableTaskShell({
 export interface KanbanBoardProps {
   columns: ApiKanbanColumn[];
   tasks: ApiTask[];
+  /** Project key for task slug badges on cards. */
+  projectKey?: string | null;
   canMutate: boolean;
   canMutateColumns: boolean;
   /** Override drag permission (e.g. assignees moving their own tasks). */
@@ -191,6 +193,7 @@ export interface KanbanBoardProps {
 export function KanbanBoard({
   columns,
   tasks,
+  projectKey,
   canMutate,
   canMutateColumns,
   canDragTask,
@@ -534,6 +537,7 @@ export function KanbanBoard({
                           >
                             <TaskCard
                               task={task}
+                              projectKey={projectKey}
                               columns={columns}
                               canMutate={allowEdit}
                               canDelete={allowDelete}
@@ -558,6 +562,7 @@ export function KanbanBoard({
               <div className="w-[260px] opacity-95 shadow-lg">
                 <TaskCard
                   task={activeTask}
+                  projectKey={projectKey}
                   columns={columns}
                   canMutate={false}
                   onEdit={() => undefined}

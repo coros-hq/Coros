@@ -29,6 +29,8 @@ export interface ApiProjectMember {
 export interface ApiProject {
   id: string;
   name: string;
+  /** Short org-unique code for task slugs (e.g. ABC-12). */
+  key?: string | null;
   description?: string | null;
   status: ProjectStatus;
   startDate?: string | null;

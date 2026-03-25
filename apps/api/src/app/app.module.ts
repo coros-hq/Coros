@@ -31,10 +31,20 @@ import { ProjectModule } from '../project/project.module';
 import { TaskModule } from '../task/task.module';
 import { DocumentModule } from '../document/document.module';
 import { Document } from '../document/entities/document.entity';
+import { SearchModule } from '../search/search.module';
+import { NotificationModule } from '../notification/notification.module';
+import { Notification } from '../notification/entities/notification.entity';
+import { InviteModule } from '../invite/invite.module';
+import { EmailModule } from '../email/email.module';
+import { EmployeeInviteToken } from '../invite/entities/employee-invite-token.entity';
 import { Project } from '../project/entities/project.entity';
 import { ProjectKanbanColumn } from '../project/entities/project-kanban-column.entity';
 import { ProjectMember } from '../project/entities/project-member.entity';
 import { Task } from '../task/entities/task.entity';
+import { TaskComment } from '../task/entities/task-comment.entity';
+import { AnnouncementModule } from '../announcement/announcement.module';
+import { Announcement } from '../announcement/entities/announcement.entity';
+import { AnnouncementRead } from '../announcement/entities/announcement-read.entity';
 
 @Module({
   imports: [
@@ -52,41 +62,63 @@ import { Task } from '../task/entities/task.entity';
     ProjectModule,
     TaskModule,
     DocumentModule,
+    SearchModule,
+    NotificationModule,
+    InviteModule,
+    EmailModule,
+    AnnouncementModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env.local',
+      // Nx runs from repo root; env files often live under apps/api/
+      envFilePath: ['.env.local', 'apps/api/.env.local', '.env', 'apps/api/.env'],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('POSTGRES_HOST'),
-        port: Number(configService.get<number>('POSTGRES_PORT')) || 5433,
-        username: configService.get<string>('POSTGRES_USER'),
-        password: configService.get<string>('POSTGRES_PASSWORD'),
-        database: configService.get<string>('POSTGRES_DB'),
-        entities: [
-          User,
-          Organization,
-          RefreshToken,
-          Industry,
-          Employee,
-          LeaveRequest,
-          Contract,
-          LeaveBalance,
-          Department,
-          Position,
-          Project,
-          ProjectKanbanColumn,
-          ProjectMember,
-          Task,
-          Document,
-        ],
-        synchronize: true,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const isProd = process.env.NODE_ENV === 'production';
+        const devDefaults = !isProd;
+        return {
+          type: 'postgres' as const,
+          host:
+            configService.get<string>('POSTGRES_HOST') ??
+            (devDefaults ? 'localhost' : undefined),
+          port: Number(configService.get<number>('POSTGRES_PORT')) || 5433,
+          username:
+            configService.get<string>('POSTGRES_USER') ??
+            (devDefaults ? 'coros' : undefined),
+          password:
+            configService.get<string>('POSTGRES_PASSWORD') ??
+            (devDefaults ? 'password' : undefined),
+          database:
+            configService.get<string>('POSTGRES_DB') ??
+            (devDefaults ? 'coros_db' : undefined),
+          entities: [
+            User,
+            Organization,
+            RefreshToken,
+            Industry,
+            Employee,
+            LeaveRequest,
+            Contract,
+            LeaveBalance,
+            Department,
+            Position,
+            Project,
+            ProjectKanbanColumn,
+            ProjectMember,
+            Task,
+            TaskComment,
+            Document,
+            Notification,
+            EmployeeInviteToken,
+            Announcement,
+            AnnouncementRead,
+          ],
+          synchronize: true,
+        };
+      },
     }),
-    AuthModule,
   ],
   controllers: [AppController],
   providers: [

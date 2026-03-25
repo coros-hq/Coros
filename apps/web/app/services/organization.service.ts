@@ -11,6 +11,7 @@ export interface ApiOrganization {
   industryId?: string | null;
   industry?: { id: string; name: string } | null;
   isActive: boolean;
+  isOnboarded?: boolean;
   createdAt: string;
 }
 
@@ -21,6 +22,7 @@ export interface UpdateOrganizationDto {
   industryId?: string;
   size?: OrganizationSize;
   isActive?: boolean;
+  isOnboarded?: boolean;
 }
 
 export async function getOrganizationMe(): Promise<ApiOrganization> {
@@ -32,3 +34,5 @@ export async function updateOrganizationMe(
 ): Promise<ApiOrganization> {
   return api.patch<ApiOrganization>('/organizations/me', dto);
 }
+
+export const updateMe = updateOrganizationMe;

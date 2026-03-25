@@ -5,12 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { LeaveRequest } from './entities/leave-request.entity';
 import { Employee } from '../employee/entities/employee.entity';
+import { User } from '../user/entities/user.entity';
 import { NewLeaveRequestDto } from './dto/new-leave-request.dto';
 import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
-import { LeaveRequestStatus, Role } from '@org/shared-types';
+import { LeaveRequestStatus, NotificationType, Role } from '@org/shared-types';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class LeaveRequestService {
@@ -19,6 +21,9 @@ export class LeaveRequestService {
     private readonly leaveRequestRepository: Repository<LeaveRequest>,
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async findAllForUser(
@@ -89,7 +94,37 @@ export class LeaveRequestService {
       status: isAdminOrManager ? LeaveRequestStatus.APPROVED : LeaveRequestStatus.PENDING,
       approvedById: isAdminOrManager ? userId : null,
     });
-    return await this.leaveRequestRepository.save(request);
+    const saved = await this.leaveRequestRepository.save(request);
+
+    if (!isAdminOrManager) {
+      try {
+        const employee = await this.employeeRepository.findOne({
+          where: { id: employeeId },
+        });
+        if (employee) {
+          const admins = await this.userRepository.find({
+            where: {
+              organizationId: employee.organizationId,
+              role: In([Role.ADMIN, Role.MANAGER, Role.SUPER_ADMIN]),
+            },
+          });
+          for (const admin of admins) {
+            await this.notificationService.create({
+              userId: admin.id,
+              organizationId: employee.organizationId,
+              type: NotificationType.LEAVE_REQUEST_SUBMITTED,
+              title: 'New leave request',
+              message: `${employee.firstName} ${employee.lastName} submitted a ${dto.type} leave request`,
+              link: '/leave-requests',
+            });
+          }
+        }
+      } catch {
+        // Notification failures must not break the main operation
+      }
+    }
+
+    return saved;
   }
 
   async findOne(id: string): Promise<LeaveRequest> {
@@ -120,27 +155,61 @@ export class LeaveRequestService {
   async approve(id: string, approvedById: string): Promise<LeaveRequest> {
     const request = await this.leaveRequestRepository.findOne({
       where: { id },
-      relations: ['employee', 'approvedBy'],
+      relations: ['employee', 'employee.user', 'approvedBy'],
     });
     if (!request) {
       throw new NotFoundException('Leave request not found');
     }
     request.status = LeaveRequestStatus.APPROVED;
     request.approvedById = approvedById;
-    return await this.leaveRequestRepository.save(request);
+    const saved = await this.leaveRequestRepository.save(request);
+
+    try {
+      if (request.employee?.userId) {
+        await this.notificationService.create({
+          userId: request.employee.userId,
+          organizationId: request.employee.organizationId,
+          type: NotificationType.LEAVE_REQUEST_APPROVED,
+          title: 'Leave request approved',
+          message: `Your ${request.type} leave request has been approved`,
+          link: '/leave-requests',
+        });
+      }
+    } catch {
+      // Notification failures must not break the main operation
+    }
+
+    return saved;
   }
 
   async reject(id: string, approvedById: string): Promise<LeaveRequest> {
     const request = await this.leaveRequestRepository.findOne({
       where: { id },
-      relations: ['employee', 'approvedBy'],
+      relations: ['employee', 'employee.user', 'approvedBy'],
     });
     if (!request) {
       throw new NotFoundException('Leave request not found');
     }
     request.status = LeaveRequestStatus.REJECTED;
     request.approvedById = approvedById;
-    return await this.leaveRequestRepository.save(request);
+    const saved = await this.leaveRequestRepository.save(request);
+
+    try {
+      if (request.employee?.userId) {
+        await this.notificationService.create({
+          userId: request.employee.userId,
+          organizationId: request.employee.organizationId,
+          type: NotificationType.LEAVE_REQUEST_REJECTED,
+          title: 'Leave request rejected',
+          message: `Your ${request.type} leave request has been rejected`,
+          link: '/leave-requests',
+        });
+      }
+    } catch {
+      // Notification failures must not break the main operation
+    }
+
+    return saved;
   }
 
   async update(

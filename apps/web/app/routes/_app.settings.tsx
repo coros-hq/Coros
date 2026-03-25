@@ -351,7 +351,7 @@ export default function SettingsPage() {
           )
         : null}
 
-      <div className="mx-auto max-w-4xl py-4">
+      <div className="mx-auto w-full px-4 py-4">
         <div className="mb-4">
           <h1 className="text-lg font-semibold text-foreground">Settings</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">

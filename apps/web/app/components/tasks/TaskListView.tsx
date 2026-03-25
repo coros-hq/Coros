@@ -30,6 +30,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { Input } from '~/components/ui/input';
 import { cn } from '~/lib/utils';
+import { htmlToPlainText } from '~/lib/html';
 import type { ApiKanbanColumn } from '~/services/kanban-column.service';
 import type { ApiTask, TaskStatus } from '~/services/task.service';
 
@@ -73,6 +74,8 @@ export function tasksInColumn(
 export interface TaskListViewProps {
   columns: ApiKanbanColumn[];
   tasks: ApiTask[];
+  /** Project key for task slug labels. */
+  projectKey?: string | null;
   canMutate: boolean;
   onEditTask: (task: ApiTask) => void;
   onDeleteTask: (task: ApiTask) => void;
@@ -83,6 +86,7 @@ export interface TaskListViewProps {
 export function TaskListView({
   columns,
   tasks,
+  projectKey,
   canMutate,
   onEditTask,
   onDeleteTask,
@@ -239,7 +243,13 @@ export function TaskListView({
             ) : null}
 
             {open
-              ? colTasks.map((task) => (
+              ? colTasks.map((task) => {
+                  const slugKey = projectKey ?? task.project?.key ?? '';
+                  const slug =
+                    slugKey && task.number != null
+                      ? `${slugKey}-${task.number}`
+                      : null;
+                  return (
                   <div
                     key={task.id}
                     role="button"
@@ -255,12 +265,17 @@ export function TaskListView({
                   >
                     <PriorityIcon priority={task.priority} />
                     <div className="min-w-0">
+                      {slug ? (
+                        <p className="mb-0.5 font-mono text-[10px] text-muted-foreground">
+                          {slug}
+                        </p>
+                      ) : null}
                       <p className="truncate text-sm font-medium text-foreground">
                         {task.name}
                       </p>
                       {task.description ? (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {task.description}
+                          {htmlToPlainText(task.description)}
                         </p>
                       ) : null}
                     </div>
@@ -322,7 +337,8 @@ export function TaskListView({
                       ) : null}
                     </div>
                   </div>
-                ))
+                  );
+                })
               : null}
           </div>
         );

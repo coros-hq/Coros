@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ const createSchema = z.object({
   lastName: z.string().min(1, 'Required'),
   email: z.string().email('Invalid email'),
   phone: z.string().min(1, 'Required'),
+  avatar: z.string().optional(),
   dateOfBirth: z.string().optional(),
   hireDate: z.string().optional(),
   departmentId: z.string().min(1, 'Required'),
@@ -91,6 +93,7 @@ export function EmployeeForm({
         lastName: employee.lastName,
         email: employee.user?.email ?? '',
         phone: employee.phone ?? '',
+        avatar: employee.avatar ?? '',
         dateOfBirth: toDateInputValue(employee.dateOfBirth),
         hireDate: toDateInputValue(employee.hireDate),
         departmentId: employee.department?.id ?? fixedDepartmentId ?? '',
@@ -105,6 +108,7 @@ export function EmployeeForm({
       lastName: '',
       email: '',
       phone: '',
+      avatar: '',
       dateOfBirth: '',
       hireDate: '',
       departmentId: fixedDepartmentId ?? '',
@@ -124,6 +128,14 @@ export function EmployeeForm({
   );
 
   const managerOptions = employees.filter((e) => e.id !== employee?.id);
+  const initials = `${values.firstName ?? ''} ${values.lastName ?? ''}`
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   function set<K extends keyof (CreateValues | UpdateValues)>(
     field: K,
@@ -231,6 +243,61 @@ export function EmployeeForm({
             disabled={!isAdmin && mode === 'edit'}
           />
           <FieldError message={errors.lastName} />
+        </div>
+      </div>
+
+      {/* Avatar */}
+      <div className="space-y-2">
+        <Label htmlFor="avatar">Photo</Label>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-12 w-12 border">
+            {values.avatar ? (
+              <AvatarImage
+                alt="Employee photo"
+                src={String(values.avatar)}
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+            <AvatarFallback className="text-xs font-semibold">
+              {initials || '—'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Input
+              id="avatar"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) {
+                  set('avatar', '');
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const result = reader.result;
+                  set('avatar', typeof result === 'string' ? result : '');
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                Upload an image (stored with the employee record).
+              </p>
+              {values.avatar ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => set('avatar', '')}
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -27,6 +27,7 @@ import {
   sanitizeDocumentName,
   type ApiDocument,
 } from '~/services/document.service';
+import { isManagementRole } from '~/lib/nav-roles';
 import { listEmployees } from '~/services/employee.service';
 import type { ApiEmployee } from '~/services/employee.service';
 import {
@@ -71,6 +72,8 @@ export default function DocumentsPage() {
     useDocuments();
   const user = useAuthStore((s) => s.user);
   const canMutate = user?.role === 'admin' || user?.role === 'super_admin';
+  /** Managers/admins see every org document from the API; employees only see org + own. */
+  const seesOrgWideDocuments = isManagementRole(user?.role);
 
   const myContracts = useMemo(
     () => documents.filter((d) => d.employeeId),
@@ -212,7 +215,9 @@ export default function DocumentsPage() {
                     {filteredMyContracts.length > 0 ? (
                       <div>
                         <h2 className="mb-3 text-sm font-semibold text-foreground">
-                          {canMutate ? 'Contracts' : 'My contract'}
+                          {seesOrgWideDocuments
+                            ? 'Employee contracts'
+                            : 'My contract'}
                         </h2>
                         <div className="flex flex-col gap-3">
                           {filteredMyContracts.map((doc) => (
@@ -220,6 +225,7 @@ export default function DocumentsPage() {
                               key={doc.id}
                               document={doc}
                               canMutate={canMutate}
+                              showEmployeeBadge={seesOrgWideDocuments}
                               onPreview={() => setPreviewDocument(doc)}
                               onDownload={() =>
                                 window.open(doc.url, '_blank', 'noopener')
@@ -241,6 +247,7 @@ export default function DocumentsPage() {
                               key={doc.id}
                               document={doc}
                               canMutate={canMutate}
+                              showEmployeeBadge={false}
                               onPreview={() => setPreviewDocument(doc)}
                               onDownload={() =>
                                 window.open(doc.url, '_blank', 'noopener')

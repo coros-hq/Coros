@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -15,14 +16,19 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import {
+  NotificationType,
   ProjectMemberRole,
   ProjectStatus,
   Role,
   TaskStatus,
 } from '@org/shared-types';
+import { NotificationService } from '../notification/notification.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ProjectService {
+  private readonly logger = new Logger(ProjectService.name);
+
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -36,6 +42,8 @@ export class ProjectService {
     private readonly employeeRepository: Repository<Employee>,
     @InjectRepository(Task)
     private readonly taskRepository: Repository<Task>,
+    private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(
@@ -52,9 +60,22 @@ export class ProjectService {
       );
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const memberIdsToAdd = dto.memberIds ?? [];
+    const uniqueMemberIds = [...new Set(memberIdsToAdd)].filter(
+      (id) => id !== creator.id,
+    );
+
+    const project = await this.dataSource.transaction(async (manager) => {
       const projectRepo = manager.getRepository(Project);
       const memberRepo = manager.getRepository(ProjectMember);
+
+      const existingProjects = await projectRepo.find({
+        where: { organizationId },
+        select: ['key'],
+      });
+      const existingKeys = existingProjects
+        .map((p) => p.key)
+        .filter((k): k is string => Boolean(k));
 
       const project = projectRepo.create({
         name: dto.name,
@@ -63,6 +84,7 @@ export class ProjectService {
         startDate: dto.startDate ? new Date(dto.startDate) : null,
         endDate: dto.endDate ? new Date(dto.endDate) : null,
         organizationId,
+        key: this.generateProjectKey(dto.name, existingKeys),
       });
       const savedProject = await projectRepo.save(project);
 
@@ -73,10 +95,6 @@ export class ProjectService {
       });
       await memberRepo.save(ownerMember);
 
-      const memberIdsToAdd = dto.memberIds ?? [];
-      const uniqueMemberIds = [...new Set(memberIdsToAdd)].filter(
-        (id) => id !== creator.id,
-      );
       for (const employeeId of uniqueMemberIds) {
         const employee = await manager.getRepository(Employee).findOne({
           where: { id: employeeId, organizationId },
@@ -96,6 +114,22 @@ export class ProjectService {
         relations: ['members', 'members.employee'],
       });
     });
+
+    for (const employeeId of uniqueMemberIds) {
+      const member = await this.projectMemberRepository.findOne({
+        where: { projectId: project.id, employeeId },
+      });
+      if (member) {
+        await this.notifyProjectMemberAdded(
+          organizationId,
+          project.id,
+          project.name,
+          employeeId,
+        );
+      }
+    }
+
+    return project;
   }
 
   async findAll(
@@ -234,6 +268,7 @@ export class ProjectService {
 
     const employee = await this.employeeRepository.findOne({
       where: { id: dto.employeeId, organizationId },
+      relations: ['user'],
     });
     if (!employee) {
       throw new NotFoundException('Employee not found');
@@ -251,7 +286,59 @@ export class ProjectService {
       employeeId: dto.employeeId,
       role: dto.role ?? ProjectMemberRole.MEMBER,
     });
-    return this.projectMemberRepository.save(member);
+    const saved = await this.projectMemberRepository.save(member);
+
+    await this.notifyProjectMemberAdded(
+      organizationId,
+      projectId,
+      project.name,
+      dto.employeeId,
+    );
+
+    return saved;
+  }
+
+  /** In-app notification + project invite email (best effort; never throws). */
+  private async notifyProjectMemberAdded(
+    organizationId: string,
+    projectId: string,
+    projectName: string,
+    employeeId: string,
+  ): Promise<void> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: employeeId, organizationId },
+      relations: ['user'],
+    });
+    if (!employee) {
+      return;
+    }
+
+    try {
+      await this.notificationService.create({
+        userId: employee.userId,
+        organizationId,
+        type: NotificationType.PROJECT_MEMBER_ADDED,
+        title: 'Added to a project',
+        message: `You have been added to ${projectName}`,
+        link: `/projects/${projectId}`,
+      });
+    } catch {
+      // Notification failures must not break the main operation
+    }
+
+    try {
+      if (employee.user?.email) {
+        await this.emailService.sendProjectInvite(
+          employee.user.email,
+          projectName,
+          projectId,
+        );
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Project invite email not sent: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async removeMember(
@@ -474,5 +561,48 @@ export class ProjectService {
         projectId,
       });
     });
+  }
+
+  /**
+   * Ensures `project.key` is set (legacy rows may have null). Same algorithm as create().
+   * Returns the key (existing or newly assigned).
+   */
+  async ensureProjectKey(
+    projectId: string,
+    organizationId: string,
+  ): Promise<string | null> {
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId, organizationId },
+    });
+    if (!project) return null;
+    if (project.key) return project.key;
+
+    const existingProjects = await this.projectRepository.find({
+      where: { organizationId },
+      select: ['key'],
+    });
+    const existingKeys = existingProjects
+      .map((p) => p.key)
+      .filter((k): k is string => Boolean(k));
+
+    project.key = this.generateProjectKey(project.name, existingKeys);
+    await this.projectRepository.save(project);
+    return project.key;
+  }
+
+  private generateProjectKey(name: string, existingKeys: string[]): string {
+    const base = name
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '')
+      .slice(0, 3)
+      .padEnd(3, 'X');
+
+    let key = base;
+    let counter = 1;
+    while (existingKeys.includes(key)) {
+      key = `${base}${counter}`;
+      counter++;
+    }
+    return key;
   }
 }

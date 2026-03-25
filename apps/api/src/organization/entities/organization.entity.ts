@@ -34,6 +34,9 @@ export class Organization extends BaseEntity {
   @Column({ type: 'boolean' })
   isActive!: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isOnboarded!: boolean;
+
   @OneToMany(() => User, (user) => user.organization)
   users!: User[];
 

@@ -41,6 +41,25 @@ export class TaskController {
     return this.taskService.findAll(organizationId, projectId);
   }
 
+  @Get(':taskId')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  async findOne(
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.taskService.findOne(
+      organizationId,
+      projectId,
+      taskId,
+      userId,
+      role,
+    );
+  }
+
   @Patch(':taskId')
   @UseGuards(JwtAuthGuard)
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)

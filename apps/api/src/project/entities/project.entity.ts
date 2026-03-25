@@ -11,6 +11,10 @@ export class Project extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
+  /** Short code unique within the organization (for task slugs, e.g. ABC-12). */
+  @Column({ type: 'varchar', length: 32, nullable: true, unique: false })
+  key!: string | null;
+
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 

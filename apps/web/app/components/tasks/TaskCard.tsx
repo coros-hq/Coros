@@ -22,6 +22,7 @@ import {
   StatusBadge,
   STATUS_CONFIG,
 } from '~/components/tasks/task-badges';
+import { htmlToPlainText } from '~/lib/html';
 import type { ApiKanbanColumn } from '~/services/kanban-column.service';
 import type { ApiTask, TaskStatus } from '~/services/task.service';
 
@@ -34,6 +35,8 @@ const COLUMN_STATUSES: TaskStatus[] = [
 
 export interface TaskCardProps {
   task: ApiTask;
+  /** Project key for slug badge (optional; falls back to task.project?.key). */
+  projectKey?: string | null;
   canMutate: boolean;
   /** Show delete in menu (e.g. false for assignees who may only edit). */
   canDelete?: boolean;
@@ -48,6 +51,7 @@ export interface TaskCardProps {
 
 export function TaskCard({
   task,
+  projectKey,
   canMutate,
   canDelete = true,
   onEdit,
@@ -64,6 +68,12 @@ export function TaskCard({
   const moveTargets =
     columns?.filter((c) => c.id !== task.kanbanColumnId) ?? [];
 
+  const keyForSlug = projectKey ?? task.project?.key ?? '';
+  const slug =
+    keyForSlug && task.number != null
+      ? `${keyForSlug}-${task.number}`
+      : null;
+
   return (
     <div
       role="button"
@@ -78,7 +88,14 @@ export function TaskCard({
       }}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">{task.name}</p>
+        <div className="min-w-0 flex-1">
+          {slug ? (
+            <p className="mb-0.5 font-mono text-[10px] text-muted-foreground">
+              {slug}
+            </p>
+          ) : null}
+          <p className="text-sm font-medium text-foreground">{task.name}</p>
+        </div>
         {canMutate ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -157,7 +174,7 @@ export function TaskCard({
       </div>
       {task.description ? (
         <p className="text-xs text-muted-foreground line-clamp-2">
-          {task.description}
+          {htmlToPlainText(task.description)}
         </p>
       ) : null}
       <div className="flex items-center gap-2 mt-1 flex-wrap">

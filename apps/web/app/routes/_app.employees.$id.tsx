@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   ArrowLeft,
@@ -9,8 +9,12 @@ import {
   FileText,
   Mail,
   MapPin,
+  MoreHorizontal,
+  Paperclip,
   Pencil,
   Phone,
+  Plus,
+  Trash2,
   User,
 } from 'lucide-react';
 
@@ -41,6 +45,13 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
+import { ContractForm } from '~/components/contracts/ContractForm';
 import { DocumentCard } from '~/components/documents/DocumentCard';
 import { EmployeeForm } from '~/components/employees/EmployeeForm';
 import { useEmployeeDetail } from '~/hooks/useEmployeeDetail';
@@ -48,7 +59,14 @@ import { useEmployeeDocuments } from '~/hooks/useEmployeeDocuments';
 import { useEmployees } from '~/hooks/useEmployees';
 import { useAuthStore } from '~/stores/auth.store';
 import { format, parseISO, isValid } from 'date-fns';
+import {
+  formatSalary,
+  getContractStatus,
+  getContractStatusConfig,
+} from '~/lib/contract';
+import { convertToCSV, downloadCSV } from '~/lib/csv';
 import { cn } from '~/lib/utils';
+import { ExportButton } from '~/components/common/ExportButton';
 import {
   sanitizeDocumentName,
   type ApiDocument,
@@ -58,6 +76,11 @@ import type {
   CreateEmployeePayload,
   UpdateEmployeePayload,
 } from '~/services/employee.service';
+import {
+  contractService,
+  type ApiContract,
+} from '~/services/contract.service';
+import type { ContractFormValues } from '~/components/contracts/ContractForm';
 
 function formatDate(d?: string | null): string {
   if (!d) return '—';
@@ -107,6 +130,11 @@ export default function EmployeeDetailPage() {
     null
   );
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [contracts, setContracts] = useState<ApiContract[]>([]);
+  const [contractSheetOpen, setContractSheetOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<ApiContract | null>(
+    null
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -137,6 +165,9 @@ export default function EmployeeDetailPage() {
 
   const user = useAuthStore((s) => s.user);
   const canMutate = user?.role === 'admin' || user?.role === 'super_admin';
+  const canManageContracts =
+    user?.role === 'admin' || user?.role === 'super_admin';
+  const canExportContracts = user?.role === 'admin' || user?.role === 'super_admin';
 
   const isPdf = (doc: ApiDocument) =>
     doc.mimeType === 'application/pdf' ||
@@ -164,6 +195,104 @@ export default function EmployeeDetailPage() {
       setDeleteError(extractDocErrorMessage(err));
     }
   };
+
+  useEffect(() => {
+    if (!employee?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await contractService.getByEmployee(employee.id);
+        if (!cancelled) setContracts(data);
+      } catch {
+        if (!cancelled) setContracts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [employee?.id]);
+
+  const handleExportContracts = () => {
+    if (!employee) return;
+    const formatISODate = (date?: string | null) => {
+      if (!date) return '';
+      try {
+        return format(new Date(date), 'yyyy-MM-dd');
+      } catch {
+        return '';
+      }
+    };
+    const formatType = (type?: string) => {
+      if (!type) return '';
+      return String(type).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+
+    const csv = convertToCSV(contracts, [
+      {
+        key: 'employeeName',
+        label: 'Employee name',
+        format: () =>
+          `${employee.firstName ?? ''} ${employee.lastName ?? ''}`.trim(),
+      },
+      { key: 'type', label: 'Type', format: (v) => formatType(String(v ?? '')) },
+      { key: 'startDate', label: 'Start date', format: (v) => formatISODate(String(v ?? '')) },
+      {
+        key: 'endDate',
+        label: 'End date',
+        format: (v) => (v ? formatISODate(String(v)) : 'Permanent'),
+      },
+      {
+        key: 'salary',
+        label: 'Salary',
+        format: (_v, row) =>
+          row.salary == null ? '' : `${formatSalary(row.salary, row.currency)}`,
+      },
+      { key: 'currency', label: 'Currency', format: (v) => String(v ?? '') },
+      {
+        key: 'status',
+        label: 'Status',
+        format: (_v, row) => getContractStatus(row),
+      },
+      { key: 'notes', label: 'Notes', format: (v) => String(v ?? '') },
+    ]);
+
+    const safeFirst = String(employee.firstName ?? '').trim() || 'employee';
+    const safeLast = String(employee.lastName ?? '').trim() || '';
+    downloadCSV(
+      csv,
+      `contracts_${safeFirst}_${safeLast}_${format(new Date(), 'yyyy-MM-dd')}.csv`
+    );
+  };
+
+  async function handleCreateContract(values: ContractFormValues) {
+    if (!employee) return;
+    const contract = await contractService.create({
+      ...values,
+      employeeId: employee.id,
+      currency: values.currency ?? 'USD',
+    });
+    setContracts((prev) => [contract, ...prev]);
+    setContractSheetOpen(false);
+  }
+
+  async function handleUpdateContract(values: ContractFormValues) {
+    if (!editingContract) return;
+    const contract = await contractService.update(editingContract.id, {
+      ...values,
+      currency: values.currency ?? 'USD',
+    });
+    setContracts((prev) =>
+      prev.map((c) => (c.id === contract.id ? contract : c))
+    );
+    setEditingContract(null);
+    setContractSheetOpen(false);
+  }
+
+  async function handleDeleteContract(id: string) {
+    if (!window.confirm('Delete this contract? This cannot be undone.')) return;
+    await contractService.remove(id);
+    setContracts((prev) => prev.filter((c) => c.id !== id));
+  }
 
   const handleUpdateSubmit = async (
     values: CreateEmployeePayload | UpdateEmployeePayload
@@ -281,7 +410,7 @@ export default function EmployeeDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 flex-wrap">
           <TabsTrigger value="personal" className="gap-2">
             <User className="size-4" />
             Personal info
@@ -289,6 +418,14 @@ export default function EmployeeDetailPage() {
           <TabsTrigger value="work" className="gap-2">
             <Briefcase className="size-4" />
             Work info
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="gap-2">
+            <FileText className="size-4" />
+            Contracts
+          </TabsTrigger>
+          <TabsTrigger value="leave" className="gap-2">
+            <Calendar className="size-4" />
+            Leave
           </TabsTrigger>
         </TabsList>
 
@@ -385,46 +522,195 @@ export default function EmployeeDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="contracts">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
+            {canManageContracts && (
+              <div className="flex justify-end gap-2">
+                {canExportContracts ? (
+                  <ExportButton onExport={handleExportContracts} label="Export CSV" />
+                ) : null}
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingContract(null);
+                    setContractSheetOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add contract
+                </Button>
+              </div>
+            )}
+
+            {contracts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No contracts yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {contracts.map((contract) => {
+                  const status = getContractStatus(contract);
+                  const statusConfig = getContractStatusConfig(status);
+                  return (
+                    <div
+                      key={contract.id}
+                      className="rounded-lg border bg-card p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-foreground capitalize">
+                              {contract.type.replace(/_/g, ' ')}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={statusConfig.className}
+                            >
+                              {statusConfig.label}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(contract.startDate), 'MMM dd, yyyy')}
+                            {' → '}
+                            {contract.endDate
+                              ? format(new Date(contract.endDate), 'MMM dd, yyyy')
+                              : 'No end date'}
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {formatSalary(contract.salary, contract.currency)}
+                            {contract.salary ? ' / month' : ''}
+                          </p>
+                          {contract.notes ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {contract.notes}
+                            </p>
+                          ) : null}
+                          {contract.document ? (
+                            <a
+                              href={contract.document.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+                            >
+                              <Paperclip className="h-3 w-3" />
+                              {contract.document.name}
+                            </a>
+                          ) : null}
+                        </div>
+                        {canManageContracts && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  setEditingContract(contract);
+                                  setContractSheetOpen(true);
+                                }}
+                              >
+                                <Pencil className="h-3.5 w-3.5 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() =>
+                                  void handleDeleteContract(contract.id)
+                                }
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="leave">
+          {leaveBalances.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8">
+              No leave balances for this employee.
+            </p>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="size-4" />
+                  Leave balances
+                </CardTitle>
+                <CardDescription>Remaining days per leave type</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {leaveBalances.map((bal) => {
+                    const pct =
+                      bal.total > 0 ? (bal.remaining / bal.total) * 100 : 0;
+                    return (
+                      <div key={bal.id} className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="capitalize text-foreground">
+                            {bal.type.replace(/_/g, ' ')}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {bal.remaining} / {bal.total} days
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
       </Tabs>
 
-      {/* Leave balances */}
-      {leaveBalances.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="size-4" />
-              Leave balances
-            </CardTitle>
-            <CardDescription>Remaining days per leave type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {leaveBalances.map((bal) => {
-                const pct =
-                  bal.total > 0 ? (bal.remaining / bal.total) * 100 : 0;
-                return (
-                  <div key={bal.id} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="capitalize text-foreground">
-                        {bal.type.replace(/_/g, ' ')}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {bal.remaining} / {bal.total} days
-                      </span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${Math.min(pct, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Sheet
+        open={contractSheetOpen}
+        onOpenChange={(open) => {
+          setContractSheetOpen(open);
+          if (!open) setEditingContract(null);
+        }}
+      >
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {editingContract ? 'Edit contract' : 'Add contract'}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 px-6 pb-6">
+            <ContractForm
+              key={editingContract?.id ?? 'new'}
+              onSubmit={
+                editingContract ? handleUpdateContract : handleCreateContract
+              }
+              onCancel={() => setContractSheetOpen(false)}
+              defaultValues={editingContract ?? undefined}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Assigned tasks */}
       {tasks.length > 0 && (

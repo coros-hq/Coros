@@ -12,6 +12,10 @@ export class Task extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
+  /** Per-project sequence for display slugs (with project.key). */
+  @Column({ type: 'int', default: 0 })
+  number!: number;
+
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 

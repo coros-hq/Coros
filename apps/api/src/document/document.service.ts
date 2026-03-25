@@ -4,7 +4,16 @@ import { Repository } from 'typeorm';
 import { Role } from '@org/shared-types';
 import { Document } from './entities/document.entity';
 import { Employee } from '../employee/entities/employee.entity';
+import { User } from '../user/entities/user.entity';
 import { StorageService } from '../storage/storage.service';
+
+function isPrivilegedDocumentRole(role: Role | undefined): boolean {
+  return (
+    role === Role.SUPER_ADMIN ||
+    role === Role.ADMIN ||
+    role === Role.MANAGER
+  );
+}
 
 @Injectable()
 export class DocumentService {
@@ -13,20 +22,31 @@ export class DocumentService {
     private readonly documentRepository: Repository<Document>,
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly storageService: StorageService,
   ) {}
+
+  /** Prefer DB role so JWT drift cannot hide org-wide documents from admins/managers. */
+  private async resolveRole(userId: string, jwtRole: Role): Promise<Role> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'role'],
+    });
+    return user?.role ?? jwtRole;
+  }
 
   async findAll(
     organizationId: string,
     userId: string,
-    role: Role,
+    jwtRole: Role,
     employeeIdFilter?: string,
   ): Promise<Document[]> {
-    const isAdmin =
-      role === 'super_admin' || role === 'admin' || role === 'manager';
+    const role = await this.resolveRole(userId, jwtRole);
+    const isPrivileged = isPrivilegedDocumentRole(role);
 
     if (employeeIdFilter) {
-      if (!isAdmin) {
+      if (!isPrivileged) {
         const employee = await this.employeeRepository.findOne({
           where: { userId, organizationId },
         });
@@ -41,7 +61,7 @@ export class DocumentService {
       });
     }
 
-    if (isAdmin) {
+    if (isPrivileged) {
       return this.documentRepository.find({
         where: { organizationId },
         relations: ['employee'],
@@ -68,15 +88,18 @@ export class DocumentService {
     organizationId: string,
     id: string,
     userId?: string,
-    role?: Role,
+    jwtRole?: Role,
   ): Promise<Document | null> {
     const doc = await this.documentRepository.findOne({
       where: { id, organizationId },
     });
     if (!doc) return null;
-    const isAdmin =
-      !role || role === 'super_admin' || role === 'admin' || role === 'manager';
-    if (isAdmin) return doc;
+    let role = jwtRole;
+    if (userId) {
+      role = await this.resolveRole(userId, jwtRole ?? Role.EMPLOYEE);
+    }
+    const isPrivileged = isPrivilegedDocumentRole(role);
+    if (isPrivileged) return doc;
     if (doc.employeeId === null) return doc;
     const employee = await this.employeeRepository.findOne({
       where: { userId: userId!, organizationId },
@@ -115,7 +138,9 @@ export class DocumentService {
   }
 
   async remove(organizationId: string, id: string): Promise<void> {
-    const doc = await this.findOne(organizationId, id);
+    const doc = await this.documentRepository.findOne({
+      where: { id, organizationId },
+    });
     if (!doc) {
       throw new NotFoundException('Document not found');
     }

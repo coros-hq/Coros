@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Building2 } from 'lucide-react';
 
@@ -9,18 +8,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '~/components/ui/sidebar';
-import { DEPARTMENT_COLORS } from '~/constants/department-colors';
-import { getAll, type ApiDepartment } from '~/services/department.service';
+import { useAuthStore } from '~/stores/auth.store';
+import { isManagementRole } from '~/lib/nav-roles';
 
 export function SidebarDepartmentsSection() {
   const location = useLocation();
-  const [departments, setDepartments] = useState<ApiDepartment[]>([]);
+  const role = useAuthStore((s) => s.user?.role);
 
-  useEffect(() => {
-    getAll()
-      .then(setDepartments)
-      .catch(() => setDepartments([]));
-  }, []);
+  if (!isManagementRole(role)) {
+    return null;
+  }
 
   return (
     <SidebarGroup>
@@ -28,39 +25,17 @@ export function SidebarDepartmentsSection() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
-            isActive={location.pathname === '/departments'}
+            className="w-60"
+            isActive={location.pathname.startsWith('/departments')}
             asChild
-            tooltip="All departments"
+            tooltip="Departments"
           >
             <Link to="/departments">
               <Building2 className="h-4 w-4 shrink-0" />
-              <span>All departments</span>
+              <span>Departments</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
-        {departments.map((dept) => {
-          const href = `/departments/${dept.id}`;
-          const isActive = location.pathname === href;
-          const color = dept.color ?? DEPARTMENT_COLORS[0].value;
-          return (
-            <SidebarMenuItem key={dept.id}>
-              <SidebarMenuButton
-                isActive={isActive}
-                asChild
-                tooltip={dept.name}
-              >
-                <Link to={href}>
-                  <span
-                    className="h-4 w-4 shrink-0 rounded-full"
-                    style={{ backgroundColor: color }}
-                    aria-hidden
-                  />
-                  <span className="truncate">{dept.name}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          );
-        })}
       </SidebarMenu>
     </SidebarGroup>
   );

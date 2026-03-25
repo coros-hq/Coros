@@ -4,57 +4,81 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
-  Put,
-  UseGuards,
 } from '@nestjs/common';
 import { ContractService } from './contract.service';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@org/shared-types';
-import { NewContractDto } from './dto/new-contract.dto';
+import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 
-@Controller('contract')
+@Controller('contracts')
 export class ContractController {
   constructor(private readonly contractService: ContractService) {}
 
-  @Post('create')
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.ADMIN)
-  async createContract(@Body() dto: NewContractDto) {
-    return await this.contractService.createContract(dto);
+  @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async create(
+    @CurrentUser('organizationId') organizationId: string,
+    @Body() dto: CreateContractDto
+  ) {
+    return await this.contractService.create(organizationId, dto);
   }
 
   @Get('employee/:employeeId')
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
-  async getContractByEmployee(@Param('employeeId') employeeId: string) {
-    return await this.contractService.findByEmployeeId(employeeId);
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  async findByEmployee(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
+    @Param('employeeId') employeeId: string
+  ) {
+    return await this.contractService.findByEmployee(
+      organizationId,
+      employeeId,
+      userId,
+      role
+    );
+  }
+
+  @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  async findAll(
+    @CurrentUser('organizationId') organizationId: string
+  ) {
+    return await this.contractService.findAll(organizationId);
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
-  async getContract(@Param('id') id: string) {
-    return await this.contractService.findOne(id);
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  async findOne(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
+    @Param('id') id: string
+  ) {
+    return await this.contractService.findOne(organizationId, id, userId, role);
   }
 
-  @Put('update/:id')
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.ADMIN)
-  async updateContract(
+  @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async update(
+    @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Body() dto: UpdateContractDto
   ) {
-    return await this.contractService.updateContract(id, dto);
+    return await this.contractService.update(organizationId, id, dto);
   }
 
-  @Delete('delete/:id')
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.ADMIN)
-  async deleteContract(@Param('id') id: string) {
-    await this.contractService.deleteContract(id);
+  @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async remove(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string
+  ) {
+    await this.contractService.remove(organizationId, id);
     return { message: 'Contract deleted successfully' };
   }
 }

@@ -8,6 +8,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
+  type Updater,
   type VisibilityState,
   useReactTable,
 } from '@tanstack/react-table';
@@ -51,6 +52,9 @@ export interface DataTableProps<TData> {
   searchPlaceholder?: string;
   onRowClick?: (row: TData) => void;
   toolbar?: React.ReactNode;
+  /** When both are set, search is controlled by the parent (e.g. shared with another view). */
+  globalFilter?: string;
+  onGlobalFilterChange?: (value: string) => void;
 }
 
 export function DataTable<TData>({
@@ -60,11 +64,26 @@ export function DataTable<TData>({
   searchPlaceholder = 'Search…',
   onRowClick,
   toolbar,
+  globalFilter: globalFilterProp,
+  onGlobalFilterChange: onGlobalFilterChangeProp,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [internalGlobalFilter, setInternalGlobalFilter] = useState('');
+  const controlled =
+    globalFilterProp !== undefined && onGlobalFilterChangeProp !== undefined;
+  const globalFilter = controlled ? globalFilterProp : internalGlobalFilter;
+
+  const handleGlobalFilterChange = (updater: Updater<string>) => {
+    const next =
+      typeof updater === 'function' ? updater(globalFilter) : updater;
+    if (controlled) {
+      onGlobalFilterChangeProp!(next);
+    } else {
+      setInternalGlobalFilter(next);
+    }
+  };
 
   const table = useReactTable({
     data,
@@ -76,7 +95,7 @@ export function DataTable<TData>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: handleGlobalFilterChange,
     globalFilterFn: globalFilterFn<TData>(),
     state: { sorting, columnFilters, columnVisibility, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
@@ -88,7 +107,7 @@ export function DataTable<TData>({
       <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
         <Input
           className="w-[min(100%,18rem)] shrink-0 border-border bg-background md:w-72"
-          onChange={(e) => setGlobalFilter(e.target.value)}
+          onChange={(e) => handleGlobalFilterChange(e.target.value)}
           placeholder={searchPlaceholder}
           value={globalFilter}
         />

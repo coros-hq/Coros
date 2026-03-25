@@ -1,9 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { hash } from 'bcryptjs';
 import { randomInt } from 'crypto';
-import { EmploymentType, LeaveType, Role } from '@org/shared-types';
+import { EmploymentType, LeaveType, NotificationType, Role } from '@org/shared-types';
 
 const PASSWORD_CHARS =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*';
@@ -23,6 +28,9 @@ import { LeaveBalance } from '../leave-balance/entities/leave-balance.entity';
 import { Task } from '../task/entities/task.entity';
 import { NewEmployeeDto } from './dto/new-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { NotificationService } from '../notification/notification.service';
+import { InviteService } from '../invite/invite.service';
+import { EmailService } from '../email/email.service';
 
 const DEFAULT_LEAVE_DAYS: Record<LeaveType, number> = {
   [LeaveType.VACATION]: 20,
@@ -45,6 +53,8 @@ const EMPLOYEE_LEAVE_TYPES: LeaveType[] = [
 
 @Injectable()
 export class EmployeeService {
+  private readonly logger = new Logger(EmployeeService.name);
+
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -55,7 +65,10 @@ export class EmployeeService {
     @InjectRepository(Department)
     private readonly departmentRepository: Repository<Department>,
     @InjectRepository(Task)
-    private readonly taskRepository: Repository<Task>
+    private readonly taskRepository: Repository<Task>,
+    private readonly notificationService: NotificationService,
+    private readonly inviteService: InviteService,
+    private readonly emailService: EmailService,
   ) {}
 
   async createEmployee(
@@ -85,7 +98,9 @@ export class EmployeeService {
         where: { email: dto.email },
       });
       if (existingUser) {
-        throw new BadRequestException('User with this email already exists');
+        throw new BadRequestException(
+          'A user with this email already exists. Use a different email for the new employee, or that person should sign in with their existing account — no invite email is sent in this case.',
+        );
       }
 
       const newUser = userRepo.create({
@@ -128,6 +143,42 @@ export class EmployeeService {
       await leaveBalanceRepo.save(leaveBalances);
 
       return { employee: savedEmployee };
+    }).then(async (result) => {
+      try {
+        const admins = await this.userRepository.find({
+          where: {
+            organizationId,
+            role: In([Role.ADMIN, Role.SUPER_ADMIN]),
+          },
+        });
+        for (const admin of admins) {
+          await this.notificationService.create({
+            userId: admin.id,
+            organizationId,
+            type: NotificationType.EMPLOYEE_CREATED,
+            title: 'New employee joined',
+            message: `${result.employee.firstName} ${result.employee.lastName} has joined the organization`,
+            link: `/employees/${result.employee.id}`,
+          });
+        }
+      } catch {
+        // Notification failures must not break the main operation
+      }
+      try {
+        const { token } = await this.inviteService.createToken(
+          result.employee.userId,
+        );
+        await this.emailService.sendWelcomeInvite(
+          dto.email,
+          dto.firstName,
+          token,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Welcome invite email not sent for ${dto.email}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      return result;
     });
   }
 

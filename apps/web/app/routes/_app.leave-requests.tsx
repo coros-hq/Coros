@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { createPortal } from 'react-dom';
 import { differenceInDays, format, parseISO, isValid } from 'date-fns';
-import { Ban, CalendarDays, Check, List, MoreHorizontal, Pencil, X } from 'lucide-react';
+import {
+  Ban,
+  CalendarDays,
+  Check,
+  List,
+  MoreHorizontal,
+  Pencil,
+  X,
+} from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
@@ -29,6 +37,8 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet';
 import { cn } from '~/lib/utils';
+import { convertToCSV, downloadCSV } from '~/lib/csv';
+import { ExportButton } from '~/components/common/ExportButton';
 import { LeaveCalendar } from '~/components/leave-requests/LeaveCalendar';
 import { LeaveRequestForm } from '~/components/leave-requests/LeaveRequestForm';
 import { useLeaveRequests } from '~/hooks/useLeaveRequests';
@@ -159,6 +169,7 @@ export default function LeaveRequestsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     requests,
@@ -177,6 +188,10 @@ export default function LeaveRequestsPage() {
   const user = useAuthStore((s) => s.user);
   const isAdmin =
     user?.role === 'admin' || user?.role === 'manager' || user?.role === 'super_admin';
+  const canMutate =
+    user?.role === 'admin' || user?.role === 'manager' || user?.role === 'super_admin';
+  const canExport =
+    user?.role === 'admin' || user?.role === 'manager' || user?.role === 'super_admin';
 
   useEffect(() => {
     headerPortal.current = document.getElementById('page-header');
@@ -193,14 +208,24 @@ export default function LeaveRequestsPage() {
     });
   }, [rows, statusFilter, typeFilter]);
 
+  const displayRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return filteredRows;
+    return filteredRows.filter((row) =>
+      Object.values(row as Record<string, unknown>).some((v) =>
+        String(v ?? '').toLowerCase().includes(q)
+      )
+    );
+  }, [filteredRows, searchQuery]);
+
   const filteredRequests = useMemo(
-    () => filteredRows.map((r) => r.raw),
-    [filteredRows]
+    () => displayRows.map((r) => r.raw),
+    [displayRows]
   );
 
   const columns = useMemo<ColumnDef<LeaveRequestRow>[]>(
     () => [
-      ...(isAdmin
+      ...(canMutate
         ? [
             {
               accessorKey: 'employeeName',
@@ -363,8 +388,68 @@ export default function LeaveRequestsPage() {
         },
       },
     ],
-    [isAdmin, employee?.id, approve, reject, cancel, setEditingRequest, setSheetOpen]
+    [canMutate, employee?.id, approve, reject, cancel, setEditingRequest, setSheetOpen]
   );
+
+  const handleExportLeaveRequests = () => {
+    const formatLeaveType = (type?: string) => {
+      if (!type) return '';
+      return String(type)
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+    const formatStatus = (s?: string) => {
+      if (!s) return '';
+      return String(s)
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+    const formatISODate = (date?: string) => {
+      if (!date) return '';
+      try {
+        return format(new Date(date), 'yyyy-MM-dd');
+      } catch {
+        return '';
+      }
+    };
+
+    const csv = convertToCSV(filteredRequests, [
+      {
+        key: 'employee',
+        label: 'Employee name',
+        format: (_v, row) => {
+          const emp = row.employee;
+          return emp ? `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() : '';
+        },
+      },
+      {
+        key: 'employee.user.email',
+        label: 'Email',
+        format: (v) => String(v ?? ''),
+      },
+      { key: 'type', label: 'Type', format: (v) => formatLeaveType(String(v ?? '')) },
+      { key: 'startDate', label: 'Start date', format: (v) => formatISODate(String(v ?? '')) },
+      { key: 'endDate', label: 'End date', format: (v) => formatISODate(String(v ?? '')) },
+      {
+        key: 'duration',
+        label: 'Duration',
+        format: (_v, row) => {
+          try {
+            const start = row.startDate ? new Date(row.startDate) : null;
+            const end = row.endDate ? new Date(row.endDate) : null;
+            if (!start || !end) return '';
+            return `${differenceInDays(end, start) + 1} days`;
+          } catch {
+            return '';
+          }
+        },
+      },
+      { key: 'status', label: 'Status', format: (v) => formatStatus(String(v ?? '')) },
+      { key: 'reason', label: 'Reason', format: (v) => String(v ?? '') },
+    ]);
+
+    downloadCSV(csv, `leave_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
 
   const toolbar = (
     <div className="flex flex-nowrap items-center gap-2">
@@ -397,6 +482,9 @@ export default function LeaveRequestsPage() {
           ))}
         </SelectContent>
       </Select>
+      {canExport ? (
+        <ExportButton onExport={handleExportLeaveRequests} label="Export CSV" />
+      ) : null}
       <Button
         className="shrink-0 gap-1.5"
         onClick={() => setSheetOpen(true)}
@@ -610,6 +698,8 @@ export default function LeaveRequestsPage() {
             isLoading={isLoading}
             searchPlaceholder="Search requests…"
             toolbar={toolbar}
+            globalFilter={searchQuery}
+            onGlobalFilterChange={setSearchQuery}
           />
         )}
       </div>

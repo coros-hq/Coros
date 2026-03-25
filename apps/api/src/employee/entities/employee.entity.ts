@@ -15,7 +15,6 @@ import { LeaveRequest } from "../../leave-request/entities/leave-request.entity"
 @Index('idx_employee_position_id', ['positionId'])
 @Index('idx_employee_department_id', ['departmentId'])
 @Index('idx_employee_employment_type', ['employmentType'])
-@Index('idx_employee_contract_id', ['contractId'])
 @Index('idx_employee_status', ['status'])
 export class Employee extends BaseEntity {
   @Column({ length: 255 })
@@ -87,12 +86,8 @@ export class Employee extends BaseEntity {
   @Column({ name: 'emergency_contact_phone', nullable: true })
   emergencyContactPhone?: string;
 
-  @Column({ name: 'contract_id', type: 'uuid', nullable: true })
-  contractId?: string;
-
-  @OneToOne(() => Contract, (contract) => contract.employee)
-  @JoinColumn({ name: 'contract_id' })
-  contract!: Contract;
+  @OneToMany(() => Contract, (contract) => contract.employee)
+  contracts?: Contract[];
 
   @OneToMany(() => LeaveBalance, (leaveBalance) => leaveBalance.employee)
   leaveBalances?: LeaveBalance[];

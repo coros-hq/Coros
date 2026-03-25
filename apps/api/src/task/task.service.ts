@@ -14,7 +14,8 @@ import { Employee } from '../employee/entities/employee.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ProjectService } from '../project/project.service';
-import { Role, TaskPriority, TaskStatus } from '@org/shared-types';
+import { NotificationService } from '../notification/notification.service';
+import { Role, TaskPriority, TaskStatus, NotificationType } from '@org/shared-types';
 
 @Injectable()
 export class TaskService {
@@ -30,6 +31,7 @@ export class TaskService {
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
     private readonly projectService: ProjectService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private async backfillTaskKanbanColumns(projectId: string): Promise<void> {
@@ -121,7 +123,37 @@ export class TaskService {
       organizationId,
       kanbanColumnId,
     });
-    return this.taskRepository.save(task);
+    const lastTask = await this.taskRepository.findOne({
+      where: { projectId, organizationId },
+      order: { number: 'DESC' },
+    });
+    task.number = (lastTask?.number ?? 0) + 1;
+    const saved = await this.taskRepository.save(task);
+    await this.projectService.ensureProjectKey(projectId, organizationId);
+    return this.taskRepository.findOneOrFail({
+      where: { id: saved.id },
+      relations: ['assignee', 'assignee.user', 'kanbanColumn', 'project'],
+    });
+  }
+
+  async findOne(
+    organizationId: string,
+    projectId: string,
+    taskId: string,
+    userId: string,
+    role: Role,
+  ): Promise<Task> {
+    await this.projectService.findOne(organizationId, projectId, userId, role);
+    const task = await this.taskRepository.findOne({
+      where: { id: taskId, projectId, organizationId },
+      relations: ['assignee', 'assignee.user', 'kanbanColumn', 'project'],
+    });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    const key = await this.projectService.ensureProjectKey(projectId, organizationId);
+    if (key && task.project) task.project.key = key;
+    return task;
   }
 
   async findAll(organizationId: string, projectId: string): Promise<Task[]> {
@@ -137,7 +169,7 @@ export class TaskService {
 
     const tasks = await this.taskRepository.find({
       where: { projectId },
-      relations: ['assignee', 'assignee.user', 'kanbanColumn'],
+      relations: ['assignee', 'assignee.user', 'kanbanColumn', 'project'],
     });
 
     const drifted = tasks.filter(
@@ -265,6 +297,8 @@ export class TaskService {
     if (dto.priority != null) task.priority = dto.priority;
     if (dto.dueDate !== undefined)
       task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+
+    const previousAssigneeId = task.assigneeId;
     if (dto.assigneeId !== undefined) {
       if (dto.assigneeId) {
         const isMember = await this.projectMemberRepository.findOne({
@@ -282,10 +316,40 @@ export class TaskService {
     }
 
     const saved = await this.taskRepository.save(task);
-    return this.taskRepository.findOneOrFail({
+    const result = await this.taskRepository.findOneOrFail({
       where: { id: saved.id },
-      relations: ['assignee', 'assignee.user', 'kanbanColumn'],
+      relations: ['assignee', 'assignee.user', 'kanbanColumn', 'project'],
     });
+    const projectKey = await this.projectService.ensureProjectKey(
+      projectId,
+      organizationId,
+    );
+    if (projectKey && result.project) result.project.key = projectKey;
+
+    if (
+      dto.assigneeId !== undefined &&
+      dto.assigneeId !== previousAssigneeId &&
+      dto.assigneeId !== null &&
+      result.assignee?.userId
+    ) {
+      try {
+        const project = await this.projectRepository.findOne({
+          where: { id: projectId },
+        });
+        await this.notificationService.create({
+          userId: result.assignee.userId,
+          organizationId,
+          type: NotificationType.TASK_ASSIGNED,
+          title: 'Task assigned to you',
+          message: `${result.name} in ${project?.name ?? 'project'}`,
+          link: `/projects/${projectId}/tasks`,
+        });
+      } catch {
+        // Notification failures must not break the main operation
+      }
+    }
+
+    return result;
   }
 
   async remove(

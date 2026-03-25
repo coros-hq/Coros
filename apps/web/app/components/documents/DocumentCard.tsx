@@ -26,6 +26,8 @@ const ICON_MAP: Record<string, typeof FileText> = {
 export interface DocumentCardProps {
   document: ApiDocument;
   canMutate: boolean;
+  /** Show which employee a contract belongs to (managers/admins viewing org-wide list). */
+  showEmployeeBadge?: boolean;
   onPreview: () => void;
   onDownload: () => void;
   onDelete: () => void;
@@ -34,6 +36,7 @@ export interface DocumentCardProps {
 export function DocumentCard({
   document,
   canMutate,
+  showEmployeeBadge = false,
   onPreview,
   onDownload,
   onDelete,
@@ -61,7 +64,7 @@ export function DocumentCard({
           {displayName}
         </span>
         <div className="flex flex-wrap items-center gap-2">
-          {document.employeeId && document.employee && canMutate ? (
+          {document.employeeId && document.employee && (canMutate || showEmployeeBadge) ? (
             <Badge variant="secondary" className="text-[10px]">
               {document.employee.firstName} {document.employee.lastName}
             </Badge>
