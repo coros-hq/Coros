@@ -60,8 +60,8 @@ Self-host it on your own infrastructure, or use the cloud-hosted version — sam
 git clone https://github.com/coros-hq/coros.git
 cd coros
 
-# Start the database
-docker-compose up -d
+# Start backend stack (api + postgres + redis)
+docker compose -f apps/api/docker-compose.yml up -d --build
 
 # Install dependencies
 pnpm install
@@ -70,11 +70,11 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 
-# Run both apps
-pnpm nx run-many --target=serve --projects=web,api
+# Run web app locally (optional when API runs in Docker)
+pnpm nx run @org/web:dev:development
 ```
 
-Visit `http://localhost:5173` for the web app and `http://localhost:3000/api` for the API.
+Visit `http://localhost:5173` for the web app and `http://localhost:3000/v1/api` for the API.
 
 ---
 

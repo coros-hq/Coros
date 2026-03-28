@@ -83,7 +83,7 @@ import { AnnouncementRead } from '../announcement/entities/announcement-read.ent
           host:
             configService.get<string>('POSTGRES_HOST') ??
             (devDefaults ? 'localhost' : undefined),
-          port: Number(configService.get<number>('POSTGRES_PORT')) || 5433,
+          port: Number(configService.get<number>('POSTGRES_PORT')) || 5432,
           username:
             configService.get<string>('POSTGRES_USER') ??
             (devDefaults ? 'coros' : undefined),

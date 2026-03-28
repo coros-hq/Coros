@@ -1,0 +1,11 @@
+node_modules
+.nx
+dist
+tmp
+out-tsc
+coverage
+.git
+.cursor
+agent-transcripts
+*.log
+.DS_Store

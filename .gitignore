@@ -9,6 +9,7 @@ out-tsc
 node_modules
 
 .env.*
+.env
 
 # IDEs and editors
 /.idea

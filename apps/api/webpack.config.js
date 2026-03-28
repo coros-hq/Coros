@@ -29,7 +29,7 @@ const { NxAppWebpackPlugin } = require('@nx/webpack/app-plugin');
 const { join } = require('path');
 
 module.exports = {
-  externals: ['bcrypt'],
+  externals: ['bcrypt', /^prettier(\/.*)?$/],
   output: {
     path: join(__dirname, 'dist'),
     clean: true,
@@ -39,9 +39,8 @@ module.exports = {
   },
   resolve: {
     alias: {
-      'class-transformer/storage': require.resolve(
-        'class-transformer/cjs/storage'
-      ),
+      'class-transformer/storage':
+        require.resolve('class-transformer/cjs/storage'),
     },
   },
   plugins: [
