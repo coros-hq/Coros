@@ -1,0 +1,6 @@
+{
+    "buildCommand": "pnpm nx run @org/web:build",
+    "outputDirectory": "apps/web/build/client",
+    "installCommand": "pnpm install --frozen-lockfile",
+    "framework": null
+}
