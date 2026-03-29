@@ -20,7 +20,7 @@ services:
     container_name: coros-db
     restart: unless-stopped
     ports:
-      - 5433:5432
+      - ${POSTGRES_PORT}:5432
     env_file:
       - .env
     volumes:
@@ -49,3 +49,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
