@@ -1,7 +1,10 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SearchService } from './search.service';
 
+@ApiTags('search')
+@ApiBearerAuth('JWT')
 @Controller('search')
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}

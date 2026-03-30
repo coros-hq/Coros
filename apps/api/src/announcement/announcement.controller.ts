@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@org/shared-types';
 import { AnnouncementService } from './announcement.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -15,6 +16,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 
+@ApiTags('announcements')
+@ApiBearerAuth('JWT')
 @Controller('announcements')
 export class AnnouncementController {
   constructor(private readonly announcementService: AnnouncementService) {}

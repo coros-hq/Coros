@@ -7,10 +7,13 @@ import {
   HttpStatus,
   Patch,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
+@ApiTags('users')
+@ApiBearerAuth('JWT')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

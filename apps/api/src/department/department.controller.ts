@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DepartmentService } from './department.service';
 import { Department } from './entities/department.entity';
 import { NewDepartmentDto } from './dto/new-department.dto';
@@ -7,6 +8,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@org/shared-types';
 
+@ApiTags('departments')
+@ApiBearerAuth('JWT')
 @Controller('departments')
 export class DepartmentController {
     constructor(private readonly departmentService: DepartmentService) {}

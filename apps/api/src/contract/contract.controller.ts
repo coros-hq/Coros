@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ContractService } from './contract.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -14,6 +15,8 @@ import { Role } from '@org/shared-types';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 
+@ApiTags('contracts')
+@ApiBearerAuth('JWT')
 @Controller('contracts')
 export class ContractController {
   constructor(private readonly contractService: ContractService) {}

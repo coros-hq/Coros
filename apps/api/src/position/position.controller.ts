@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PositionService } from './position.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -6,6 +7,8 @@ import { Role } from '@org/shared-types';
 import { NewPositionDto } from './dto/position.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
+@ApiTags('positions')
+@ApiBearerAuth('JWT')
 @Controller('positions')
 export class PositionController {
   constructor(private readonly positionService: PositionService) {}

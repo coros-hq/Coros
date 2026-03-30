@@ -26,7 +26,11 @@
 // };
 
 const { NxAppWebpackPlugin } = require('@nx/webpack/app-plugin');
-const { join } = require('path');
+const { dirname, join } = require('path');
+
+const swaggerUiDistRoot = dirname(
+  require.resolve('swagger-ui-dist/package.json', { paths: [__dirname] }),
+);
 
 module.exports = {
   externals: ['bcrypt', /^prettier(\/.*)?$/],
@@ -39,6 +43,8 @@ module.exports = {
   },
   resolve: {
     alias: {
+      express: require.resolve('express', { paths: [__dirname] }),
+      'swagger-ui-dist': swaggerUiDistRoot,
       'class-transformer/storage':
         require.resolve('class-transformer/cjs/storage'),
     },

@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -14,6 +15,8 @@ import { Role } from '@org/shared-types';
 import { TaskCommentService } from './task-comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
+@ApiTags('task-comments')
+@ApiBearerAuth('JWT')
 @Controller('projects/:projectId/tasks/:taskId/comments')
 export class TaskCommentController {
   constructor(private readonly taskCommentService: TaskCommentService) {}

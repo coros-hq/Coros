@@ -12,6 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentService } from './document.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -19,6 +20,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@org/shared-types';
 
+@ApiTags('documents')
+@ApiBearerAuth('JWT')
 @Controller('documents')
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}

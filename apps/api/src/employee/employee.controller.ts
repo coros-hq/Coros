@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import { Employee } from './entities/employee.entity';
 import { NewEmployeeDto } from './dto/new-employee.dto';
@@ -8,6 +9,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@org/shared-types';
 
+@ApiTags('employees')
+@ApiBearerAuth('JWT')
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
 export class EmployeeController {

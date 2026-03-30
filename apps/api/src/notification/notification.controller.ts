@@ -5,10 +5,13 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { NotificationService } from './notification.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
+@ApiTags('notifications')
+@ApiBearerAuth('JWT')
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationController {

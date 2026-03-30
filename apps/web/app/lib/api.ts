@@ -3,7 +3,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { authUserFromAccessToken } from '~/lib/auth-from-token';
 import { useAuthStore } from '~/stores/auth.store';
 
-export const API_BASE = '/api/v1';
+export const API_BASE = `${import.meta.env.VITE_COROS_API_ORIGIN}/api/v1`;
 
 /** Nest `ResponseInterceptor` wraps payloads as `{ statusCode, message, data }`. */
 type WrappedResponse<T> = { data: T; statusCode?: number; message?: string };

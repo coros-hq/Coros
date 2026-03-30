@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -20,6 +21,8 @@ import { CreateKanbanColumnDto } from './dto/create-kanban-column.dto';
 import { ReorderKanbanColumnsDto } from './dto/reorder-kanban-columns.dto';
 import { UpdateKanbanColumnDto } from './dto/update-kanban-column.dto';
 
+@ApiTags('projects')
+@ApiBearerAuth('JWT')
 @Controller('projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}

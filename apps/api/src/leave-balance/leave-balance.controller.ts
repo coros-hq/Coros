@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LeaveBalanceService } from './leave-balance.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -17,6 +18,8 @@ import { Role } from '@org/shared-types';
 import { NewLeaveBalanceDto } from './dto/new-leave-balance.dto';
 import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 
+@ApiTags('leave-balance')
+@ApiBearerAuth('JWT')
 @Controller('leave-balance')
 export class LeaveBalanceController {
   constructor(private readonly leaveBalanceService: LeaveBalanceService) {}

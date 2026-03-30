@@ -9,6 +9,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LeaveRequestService } from './leave-request.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -17,6 +18,8 @@ import { LeaveRequestStatus, Role } from '@org/shared-types';
 import { NewLeaveRequestDto } from './dto/new-leave-request.dto';
 import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
 
+@ApiTags('leave-request')
+@ApiBearerAuth('JWT')
 @Controller('leave-request')
 export class LeaveRequestController {
   constructor(private readonly leaveRequestService: LeaveRequestService) {}

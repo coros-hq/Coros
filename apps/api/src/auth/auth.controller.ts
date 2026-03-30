@@ -1,4 +1,13 @@
-import { BadRequestException, Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Post,
+    Req,
+    Res,
+    UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -11,6 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
 const REFRESH_TOKEN_MAX_AGE_DAYS = 7;
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
@@ -65,6 +75,7 @@ export class AuthController {
     }
 
     @Post('logout')
+    @ApiBearerAuth('JWT')
     @UseGuards(JwtAuthGuard)
     async logout(@CurrentUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
         await this.authService.logout(userId);
