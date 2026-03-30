@@ -36,6 +36,11 @@ function setupSwagger(app: INestApplication) {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
+  app.enableCors({
+    origin: ['http://localhost:4200', 'https://coros-eight.vercel.app'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
 
   app.setGlobalPrefix('v1/api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
