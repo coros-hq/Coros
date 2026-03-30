@@ -3,7 +3,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { authUserFromAccessToken } from '~/lib/auth-from-token';
 import { useAuthStore } from '~/stores/auth.store';
 
-export const API_BASE = `${import.meta.env.VITE_COROS_API_ORIGIN}/api/v1`;
+export const API_BASE = `${import.meta.env.VITE_COROS_API_ORIGIN}`;
 
 /** Nest `ResponseInterceptor` wraps payloads as `{ statusCode, message, data }`. */
 type WrappedResponse<T> = { data: T; statusCode?: number; message?: string };
@@ -31,7 +31,9 @@ export async function refreshSession(): Promise<{ accessToken: string }> {
   return unwrapApiResponse<{ accessToken: string }>(res.data);
 }
 
-export async function tryRefreshSession(): Promise<{ accessToken: string } | null> {
+export async function tryRefreshSession(): Promise<{
+  accessToken: string;
+} | null> {
   try {
     return await refreshSession();
   } catch {
@@ -86,7 +88,9 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     if (!error.response || error.response.status !== 401 || !originalRequest) {
       return Promise.reject(normalizeAxiosError(error));
@@ -111,7 +115,7 @@ apiClient.interceptors.response.use(
     } catch {
       return Promise.reject(normalizeAxiosError(error));
     }
-  },
+  }
 );
 
 export const api = {
@@ -122,7 +126,8 @@ export const api = {
     apiClient.put<T>(path, body).then((r) => r.data as T),
   patch: <T>(path: string, body?: unknown) =>
     apiClient.patch<T>(path, body).then((r) => r.data as T),
-  delete: <T>(path: string) => apiClient.delete<T>(path).then((r) => r.data as T),
+  delete: <T>(path: string) =>
+    apiClient.delete<T>(path).then((r) => r.data as T),
 };
 
 /** Same client as `api` helpers — use for one-offs (`http.get`, custom config, uploads). */
@@ -131,7 +136,9 @@ export const http = apiClient;
 /** Hydrate store from refresh cookie (loaders). */
 export function applySessionFromAccessToken(
   accessToken: string,
-  hints?: { organizationName?: string },
+  hints?: { organizationName?: string }
 ): void {
-  useAuthStore.getState().setAuth(authUserFromAccessToken(accessToken, hints), accessToken);
+  useAuthStore
+    .getState()
+    .setAuth(authUserFromAccessToken(accessToken, hints), accessToken);
 }
