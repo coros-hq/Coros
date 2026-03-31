@@ -39,8 +39,9 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:4200',
-      'https://coros-eight.vercel.app',
       'https://coros.click',
+      'https://www.coros.click',
+      'https://coros-eight.vercel.app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
