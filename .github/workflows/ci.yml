@@ -39,5 +39,5 @@ jobs:
           script: |
             cd /opt/coros
             docker compose pull api
-            docker compose up -d
+            docker compose up -d --no-deps api
             docker image prune -f
