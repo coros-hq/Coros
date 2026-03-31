@@ -37,7 +37,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
   app.enableCors({
-    origin: ['http://localhost:4200', 'https://coros-eight.vercel.app'],
+    origin: [
+      'http://localhost:4200',
+      'https://coros-eight.vercel.app',
+      'https://coros.click',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
