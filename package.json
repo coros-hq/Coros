@@ -8,7 +8,8 @@
     "docker:reset": "docker compose -f apps/api/docker-compose.yml down -v",
     "api:serve": "nx run @org/api:serve:development",
     "web:dev": "nx run @org/web:dev:development",
-    "web": "nx run @org/web:serve:development"
+    "web": "nx run @org/web:serve:development",
+    "landing:dev": "pnpm --filter landing dev"
   },
   "private": true,
   "pnpm": {

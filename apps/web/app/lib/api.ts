@@ -3,7 +3,31 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { authUserFromAccessToken } from '~/lib/auth-from-token';
 import { useAuthStore } from '~/stores/auth.store';
 
-export const API_BASE = `${import.meta.env.VITE_COROS_API_ORIGIN}`;
+/**
+ * Prefer explicit URL from env (`COROS_API_ORIGIN` or `VITE_COROS_API_ORIGIN`) so the client
+ * calls the real API origin (e.g. `http://localhost:3000/v1/api`). Only `VITE_*` and `COROS_*`
+ * are exposed from `.env` — `COROS_API_ORIGIN` alone was previously ignored by Vite.
+ * Dev fallback `/api/v1` uses the Vite proxy when no env base is set.
+ */
+function resolveApiBase(): string {
+  const vite = import.meta.env.VITE_COROS_API_ORIGIN?.trim();
+  if (vite) return vite;
+  const coros = import.meta.env.COROS_API_ORIGIN?.trim();
+  if (coros) {
+    try {
+      const u = new URL(coros.startsWith('http') ? coros : `http://${coros}`);
+      const path = u.pathname.replace(/\/$/, '');
+      if (path.endsWith('/v1/api')) return `${u.origin}${path}`;
+      return `${u.origin}/v1/api`;
+    } catch {
+      /* ignore */
+    }
+  }
+  if (import.meta.env.DEV) return '/api/v1';
+  return '';
+}
+
+export const API_BASE = resolveApiBase();
 
 /** Nest `ResponseInterceptor` wraps payloads as `{ statusCode, message, data }`. */
 type WrappedResponse<T> = { data: T; statusCode?: number; message?: string };
