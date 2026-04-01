@@ -42,6 +42,8 @@ async function bootstrap() {
       'https://coros.click',
       'https://www.coros.click',
       'https://coros-eight.vercel.app',
+      'https://app.coros.click',
+      'https://www.app.coros.click',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
