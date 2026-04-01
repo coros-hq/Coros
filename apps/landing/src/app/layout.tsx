@@ -22,6 +22,11 @@ export const metadata: Metadata = {
     description:
       "HR, employees, projects and documents unified in one calm surface.",
     url: "https://coros.click",
+    images: [
+      {
+        url: "https://coros.click/coros-dashboard-mockup.png",
+      },
+    ],
   },
 };
 
