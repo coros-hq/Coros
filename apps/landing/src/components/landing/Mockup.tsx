@@ -1,10 +1,10 @@
-import Image from 'next/image';
-import mockup from '@/../public/coros-dashboard-mockup.png';
+import Image from "next/image";
+import mockup from "@/../public/coros-dashboard-mockup.png";
 
 export function Mockup() {
   return (
-    <div className="relative mx-auto w-full shadow-[0_0_80px_rgba(124,58,237,0.08)]">
-      <div className="overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm">
+    <div className="relative mx-auto w-full">
+      <div className="overflow-hidden rounded-xl border border-zinc-300/90 bg-white shadow-[0_32px_120px_-24px_rgba(24,24,27,0.18),0_0_0_1px_rgba(24,24,27,0.06)] ring-1 ring-zinc-900/[0.04]">
         <div className="flex items-center gap-2 border-b border-zinc-200/90 bg-zinc-100 px-3 py-2.5">
           <div className="flex gap-1.5" aria-hidden>
             <span className="size-2.5 rounded-full bg-[#ff5f57]" />
@@ -18,12 +18,12 @@ export function Mockup() {
 
         <div className="bg-zinc-50">
           <Image
-            src={mockup.src}
+            src={mockup}
             alt="Coros admin dashboard with overview, onboarding, metrics, tasks, and leave requests"
             width={3630}
             height={2014}
             className="h-auto w-full"
-            sizes="(max-width: 768px) 100vw, min(1200px, 100vw)"
+            sizes="100vw"
             priority
           />
         </div>

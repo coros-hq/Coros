@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono } from 'next/font/google';
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -40,11 +40,11 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn(
-        "h-full scroll-smooth",
-        "antialiased",
+        'h-full scroll-smooth',
+        'antialiased',
         geistSans.variable,
         geistMono.variable,
-        "font-sans"
+        'font-sans'
       )}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">

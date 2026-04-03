@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GITHUB_URL, REGISTER_URL } from "@/lib/landing-links";
+import { REGISTER_URL, SELF_HOST_GUIDE_URL } from "@/lib/landing-links";
 import { Mockup } from "@/components/landing/Mockup";
 import { cn } from "@/lib/utils";
 
@@ -9,71 +8,78 @@ export function Hero() {
   return (
     <section
       className={cn(
-        "relative min-h-screen overflow-hidden pt-24 pb-20",
-        "flex flex-col items-center text-center",
+        "relative overflow-x-hidden pb-16 pt-28 md:pb-24 md:pt-32",
         "hero-ambient"
       )}
     >
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 sm:px-6">
-        <div
-          className="inline-flex items-center gap-2 rounded-full border border-purple-500/25 bg-purple-500/10 px-3 py-1 text-xs text-purple-700"
-          role="status"
-        >
-          <span
-            className="relative flex size-2"
-            aria-hidden
-          >
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400/70 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-          </span>
-          Open source · AGPL licensed
-        </div>
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:items-start lg:gap-x-16 xl:gap-x-20">
+          <div className="min-w-0 text-left">
+            <h1 className="font-sans text-[clamp(2.75rem,6.5vw,5rem)] font-bold leading-[1.08] tracking-tight text-zinc-900">
+              <span className="block">Stop running your company</span>
+              <span className="mt-1 block text-zinc-500">
+                on WhatsApp and spreadsheets
+              </span>
+            </h1>
+          </div>
 
-        <h1 className="font-serif text-6xl font-normal leading-none tracking-tight text-zinc-900 md:text-8xl">
-          The company OS
-          <br />
-          built{" "}
-          <em className="italic text-zinc-500">in the open</em>
-        </h1>
+          <div className="flex min-w-0 flex-col text-left lg:pt-2">
+            <p className="text-lg font-normal leading-[1.65] text-zinc-600 md:text-[1.125rem]">
+              Coros gives your team one place for HR, projects, documents and
+              leave — simple enough for everyone, powerful enough to grow with
+              you.
+            </p>
 
-        <p className="mx-auto mt-6 max-w-lg text-lg text-zinc-600">
-          HR, employees, projects, and documents in one calm surface — free to
-          self-host, or use the cloud when you are ready.
-        </p>
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 min-w-40 rounded-lg border-0 bg-[#7c3aed] px-6 text-base font-medium text-white hover:bg-[#6d28d9]"
+              >
+                <Link href={REGISTER_URL}>Start for free</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-12 min-w-40 rounded-lg border border-zinc-200 bg-white px-6 text-base font-medium text-zinc-700 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+              >
+                <Link
+                  href={SELF_HOST_GUIDE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Self-hosting guide
+                </Link>
+              </Button>
+            </div>
 
-        <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <Button
-            asChild
-            size="lg"
-            className="h-11 min-w-40 rounded-lg border-0 bg-[#7c3aed] px-6 text-sm font-medium text-white hover:bg-[#6d28d9]"
-          >
-            <Link href={REGISTER_URL}>Start for free</Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="h-11 min-w-40 rounded-lg border border-zinc-200 bg-white px-6 text-sm font-medium text-zinc-700 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
-          >
-            <Link
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2"
+            <p className="mt-8 text-base text-zinc-500">
+              Free to start · No credit card · Cancel anytime
+            </p>
+
+            <p className="mt-4 text-base font-medium text-zinc-600">
+              Trusted by teams getting started
+            </p>
+
+            <div
+              className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-purple-500/25 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-800"
+              role="status"
             >
-              <Github className="size-4" aria-hidden />
-              View on GitHub
-            </Link>
-          </Button>
+              <span className="relative flex size-2" aria-hidden>
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400/70 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              </span>
+              Open source · AGPL licensed
+            </div>
+          </div>
         </div>
-
-        <p className="mt-8 text-sm text-zinc-500">
-          Free to self-host · AGPL licensed · Built in public
-        </p>
       </div>
 
-      <div className="relative mt-20 w-full max-w-5xl px-4 sm:px-6">
-        <Mockup />
+      <div className="mx-auto mt-20 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <Mockup />
+        </div>
       </div>
     </section>
   );

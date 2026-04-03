@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Github, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GITHUB_URL, REGISTER_URL } from "@/lib/landing-links";
 import { cn } from "@/lib/utils";
@@ -38,14 +38,12 @@ function LogoMark() {
 type NavItem = {
   href: string;
   label: string;
-  external?: boolean;
 };
 
 const navLinks: NavItem[] = [
   { href: "#features", label: "Features" },
-  { href: "#open-source", label: "Open source" },
+  { href: "#open-source", label: "For teams" },
   { href: "#pricing", label: "Pricing" },
-  { href: GITHUB_URL, label: "GitHub", external: true },
 ];
 
 export function Navbar() {
@@ -66,30 +64,27 @@ export function Navbar() {
           className="hidden items-center gap-8 md:flex"
           aria-label="Primary"
         >
-          {navLinks.map((item) =>
-            item.external ? (
-              <Link
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
-              >
-                {item.label}
-              </Link>
-            )
-          )}
+          {navLinks.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            aria-label="Coros on GitHub"
+          >
+            <Github className="size-5" aria-hidden />
+          </Link>
           <Button
             asChild
             size="lg"
@@ -99,18 +94,29 @@ export function Navbar() {
           </Button>
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 md:hidden"
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          aria-label={open ? "Close menu" : "Open menu"}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
-        </Button>
+        <div className="flex items-center gap-1 md:hidden">
+          <Link
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            aria-label="Coros on GitHub"
+          >
+            <Github className="size-5" aria-hidden />
+          </Link>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          </Button>
+        </div>
       </div>
 
       <div
@@ -124,29 +130,16 @@ export function Navbar() {
           className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 sm:px-6"
           aria-label="Mobile"
         >
-          {navLinks.map((item) =>
-            item.external ? (
-              <Link
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900"
-                onClick={() => setOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="py-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900"
-                onClick={() => setOpen(false)}
-              >
-                {item.label}
-              </Link>
-            )
-          )}
+          {navLinks.map((item) => (
+            <Link
+              key={`${item.label}-mobile`}
+              href={item.href}
+              className="py-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+              onClick={() => setOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
           <Button
             asChild
             size="lg"

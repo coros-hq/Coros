@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { GITHUB_URL, REGISTER_URL } from "@/lib/landing-links";
 
 const selfHostedFeatures = [
-  "Full source under AGPL",
+  "Full control over your data",
   "Docker-based deploy",
   "Your PostgreSQL & Redis",
   "Email hooks & SSO-ready",
@@ -36,20 +36,21 @@ export function Pricing() {
   return (
     <section
       id="pricing"
-      className="border-t border-zinc-200/80 bg-background py-32"
+      className="border-t border-zinc-200/80 bg-background py-32 md:py-40 lg:py-48"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="text-xs font-medium uppercase tracking-widest text-purple-600">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <p className="text-left text-xs font-medium uppercase tracking-widest text-purple-600">
           Pricing
         </p>
-        <h2 className="mt-3 font-serif text-4xl tracking-tight text-zinc-900">
+        <h2 className="mt-4 max-w-3xl text-left font-serif text-5xl font-normal leading-[1.12] tracking-tight text-zinc-900 md:text-6xl">
           Simple and predictable
         </h2>
-        <p className="mt-4 max-w-lg text-zinc-600">
-          Self-host for free forever, or join the cloud beta while we ship.
+        <p className="mt-6 max-w-lg text-left text-lg leading-[1.65] text-zinc-600">
+          Start free on the cloud, or run it yourself if you prefer full
+          control.
         </p>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-2 md:gap-6">
+        <div className="mt-16 grid gap-8 md:grid-cols-2 md:gap-6 lg:mt-20">
           <div className="rounded-xl border border-zinc-200/90 bg-card p-8 shadow-sm">
             <h3 className="text-sm font-medium text-zinc-900">
               Self-hosted
@@ -76,7 +77,7 @@ export function Pricing() {
           </div>
 
           <div className="relative rounded-xl border border-purple-300/80 bg-card p-8 shadow-sm ring-1 ring-purple-500/15">
-            <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-purple-200 bg-purple-100 px-3 py-1 text-xs font-medium text-purple-800">
+            <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-purple-300 bg-purple-100 px-4 py-1.5 text-sm font-semibold text-purple-900 shadow-sm">
               Cloud beta
             </span>
             <h3 className="text-sm font-medium text-zinc-900">Cloud</h3>
@@ -87,7 +88,7 @@ export function Pricing() {
               </span>
             </p>
             <p className="mt-1 text-sm text-zinc-600">
-              We host it — you use the same app.
+              We handle everything — you just run your company.
             </p>
             <ul className="mt-8 flex flex-col gap-3">
               {cloudFeatures.map((item) => (
