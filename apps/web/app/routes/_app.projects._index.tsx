@@ -30,6 +30,7 @@ import {
 } from '~/components/ui/sheet';
 import { ProjectCard } from '~/components/projects/ProjectCard';
 import { ProjectForm } from '~/components/projects/ProjectForm';
+import { htmlToPlainText } from '~/lib/html';
 import { useProjects } from '~/hooks/useProjects';
 import { useAuthStore } from '~/stores/auth.store';
 import { listEmployees } from '~/services/employee.service';
@@ -67,7 +68,7 @@ export default function ProjectsIndexPage() {
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          (p.description ?? '').toLowerCase().includes(q)
+          htmlToPlainText(p.description ?? '').toLowerCase().includes(q)
       );
     }
     if (statusFilter !== 'all') {

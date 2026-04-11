@@ -41,13 +41,6 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select';
-import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -58,6 +51,7 @@ import { TaskDetailSheet } from '~/components/tasks/TaskDetailSheet';
 import { TaskForm } from '~/components/tasks/TaskForm';
 import { TaskListView } from '~/components/tasks/TaskListView';
 import { TaskProgressBar } from '~/components/tasks/TaskProgressBar';
+import { EmployeeMultiSelect } from '~/components/projects/EmployeeMultiSelect';
 import { ProjectForm } from '~/components/projects/ProjectForm';
 import {
   Table,
@@ -102,7 +96,8 @@ export default function ProjectDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [addMemberEmployeeId, setAddMemberEmployeeId] = useState('');
+  const [addMemberEmployeeIds, setAddMemberEmployeeIds] = useState<string[]>([]);
+  const [addMemberSubmitting, setAddMemberSubmitting] = useState(false);
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
   const [allEmployees, setAllEmployees] = useState<ApiEmployee[]>([]);
   const [taskSheetOpen, setTaskSheetOpen] = useState(false);
@@ -190,14 +185,19 @@ export default function ProjectDetailPage() {
   };
 
   const handleAddMember = async () => {
-    if (!id || !addMemberEmployeeId) return;
+    if (!id || addMemberEmployeeIds.length === 0) return;
     setAddMemberError(null);
+    setAddMemberSubmitting(true);
     try {
-      await addMember({ employeeId: addMemberEmployeeId, role: 'member' });
+      for (const employeeId of addMemberEmployeeIds) {
+        await addMember({ employeeId, role: 'member' });
+      }
       setAddMemberOpen(false);
-      setAddMemberEmployeeId('');
+      setAddMemberEmployeeIds([]);
     } catch (err) {
       setAddMemberError(extractErrorMessage(err));
+    } finally {
+      setAddMemberSubmitting(false);
     }
   };
 
@@ -419,9 +419,10 @@ export default function ProjectDetailPage() {
         ) : project ? (
           <>
             {project.description ? (
-              <p className="mb-6 text-sm text-muted-foreground">
-                {project.description}
-              </p>
+              <div
+                className="prose prose-sm dark:prose-invert mb-6 max-w-none text-muted-foreground prose-p:my-2 prose-ul:my-2"
+                dangerouslySetInnerHTML={{ __html: project.description }}
+              />
             ) : null}
 
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -753,7 +754,7 @@ export default function ProjectDetailPage() {
         onOpenChange={(open) => {
           if (!open) {
             setAddMemberOpen(false);
-            setAddMemberEmployeeId('');
+            setAddMemberEmployeeIds([]);
             setAddMemberError(null);
           }
         }}
@@ -769,23 +770,13 @@ export default function ProjectDetailPage() {
               </p>
             ) : null}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Employee</label>
-              <Select
-                value={addMemberEmployeeId}
-                onValueChange={setAddMemberEmployeeId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employeesToAdd.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.firstName} {e.lastName}
-                      {e.user?.email ? ` (${e.user.email})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Employees</label>
+              <EmployeeMultiSelect
+                employees={employeesToAdd}
+                value={addMemberEmployeeIds}
+                onChange={setAddMemberEmployeeIds}
+                disabled={addMemberSubmitting || employeesToAdd.length === 0}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -793,16 +784,25 @@ export default function ProjectDetailPage() {
               variant="outline"
               onClick={() => {
                 setAddMemberOpen(false);
-                setAddMemberEmployeeId('');
+                setAddMemberEmployeeIds([]);
               }}
+              disabled={addMemberSubmitting}
             >
               Cancel
             </Button>
             <Button
               onClick={handleAddMember}
-              disabled={!addMemberEmployeeId || employeesToAdd.length === 0}
+              disabled={
+                addMemberEmployeeIds.length === 0 ||
+                employeesToAdd.length === 0 ||
+                addMemberSubmitting
+              }
             >
-              Add
+              {addMemberSubmitting
+                ? 'Adding…'
+                : addMemberEmployeeIds.length > 1
+                  ? `Add ${addMemberEmployeeIds.length} members`
+                  : 'Add'}
             </Button>
           </DialogFooter>
         </DialogContent>

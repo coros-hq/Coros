@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import { htmlToPlainText } from '~/lib/html';
 import type { ApiProject } from '~/services/project.service';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -102,7 +103,7 @@ export function ProjectCard({
       </div>
       {project.description ? (
         <p className="line-clamp-2 text-sm text-muted-foreground">
-          {project.description}
+          {htmlToPlainText(project.description)}
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">

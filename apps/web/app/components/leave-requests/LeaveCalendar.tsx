@@ -1,44 +1,54 @@
 // LeaveCalendar.tsx
-// Wraps react-big-calendar with date-fns localizer. Month view, custom event chips, custom toolbar.
-// On event click opens a sheet with request details and approve/reject/cancel actions.
+// Month grid (date-fns); status-colored leave pills. Click opens LeaveRequestDetailSheet.
 
 import { useMemo, useCallback, useState } from 'react';
-import { Calendar, dateFnsLocalizer, type Event } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import {
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  format,
+  isSameMonth,
+  isSameDay,
+  parseISO,
+  startOfDay,
+  endOfDay,
+  isWithinInterval,
+} from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover';
 import { LeaveRequestDetailSheet } from './LeaveRequestDetailSheet';
 import type { ApiLeaveRequest } from '~/services/leave-request.service';
 
-const locales = { 'en-US': enUS };
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+const WEEK_STARTS_ON = 0 as const;
 
-// Color mapping per leave type (Tailwind classes for bg + text)
-const LEAVE_TYPE_COLORS: Record<string, string> = {
-  annual: 'bg-green-500/90 text-white',
-  sick: 'bg-amber-500/90 text-white',
-  unpaid: 'bg-gray-500/90 text-white',
-  maternity: 'bg-purple-500/90 text-white',
-  paternity: 'bg-blue-500/90 text-white',
-  personal: 'bg-teal-500/90 text-white',
-  other: 'bg-slate-500/90 text-white',
-};
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export interface CalendarLeaveEvent extends Event {
-  resource: ApiLeaveRequest;
-  leaveType?: string;
-}
+const MAX_VISIBLE_PILLS = 3;
 
-function getEventColor(leaveType: string): string {
-  return LEAVE_TYPE_COLORS[leaveType?.toLowerCase()] ?? LEAVE_TYPE_COLORS.other;
+function getStatusPillClasses(status: string): string {
+  const s = status?.toLowerCase() ?? '';
+  switch (s) {
+    case 'approved':
+      return 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-800';
+    case 'pending':
+      return 'bg-amber-500/10 border border-amber-500/25 text-amber-800';
+    case 'rejected':
+      return 'bg-red-500/10 border border-red-500/25 text-red-800';
+    case 'cancelled':
+      return 'bg-zinc-500/10 border border-zinc-500/25 text-zinc-600';
+    default:
+      return 'bg-amber-500/10 border border-amber-500/25 text-amber-800';
+  }
 }
 
 function getInitials(emp: ApiLeaveRequest['employee']): string {
@@ -53,80 +63,122 @@ function getEmployeeName(emp: ApiLeaveRequest['employee']): string {
   return `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || '—';
 }
 
-function transformToEvents(requests: ApiLeaveRequest[]): CalendarLeaveEvent[] {
-  return requests.map((r) => {
-    const start = r.startDate ? new Date(r.startDate) : new Date();
-    const end = r.endDate ? new Date(r.endDate) : new Date(start);
-    // For all-day events, end should be end of day
-    const endDate = new Date(end);
-    endDate.setHours(23, 59, 59, 999);
-    const name = getEmployeeName(r.employee);
-    return {
-      id: r.id,
-      title: name,
-      start,
-      end: endDate,
-      resource: r,
-      leaveType: r.type,
-    } as CalendarLeaveEvent;
-  });
+function requestCoversDay(req: ApiLeaveRequest, day: Date): boolean {
+  if (!req.startDate) return false;
+  const start = startOfDay(parseISO(req.startDate));
+  const end = req.endDate
+    ? endOfDay(parseISO(req.endDate))
+    : endOfDay(startOfDay(parseISO(req.startDate)));
+  return isWithinInterval(startOfDay(day), { start, end });
 }
 
-function CustomEventComponent({
-  event,
+function requestsForDay(requests: ApiLeaveRequest[], day: Date): ApiLeaveRequest[] {
+  return requests.filter((r) => requestCoversDay(r, day));
+}
+
+function LeavePill({
+  req,
+  onClick,
 }: {
-  event: CalendarLeaveEvent;
+  req: ApiLeaveRequest;
+  onClick: () => void;
 }) {
-  const req = event.resource;
   const initials = getInitials(req.employee);
   const name = getEmployeeName(req.employee);
-  const colorClass = getEventColor(event.leaveType ?? 'other');
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        'flex w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-md border py-0.5 pl-2 pr-2 text-left text-[11px] font-medium',
+        getStatusPillClasses(req.status ?? 'pending')
+      )}
+      title={name}
+    >
+      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-medium text-zinc-700">
+        {initials}
+      </span>
+      <span className="truncate text-xs font-medium">{name}</span>
+    </button>
+  );
+}
+
+function DayCell({
+  day,
+  monthAnchor,
+  requests,
+  onSelectRequest,
+}: {
+  day: Date;
+  monthAnchor: Date;
+  requests: ApiLeaveRequest[];
+  onSelectRequest: (r: ApiLeaveRequest) => void;
+}) {
+  const inMonth = isSameMonth(day, monthAnchor);
+  const isToday = isSameDay(day, new Date());
+  const dayRequests = requestsForDay(requests, day);
+  const visible = dayRequests.slice(0, MAX_VISIBLE_PILLS);
+  const hiddenCount = dayRequests.length - visible.length;
+  const rest = dayRequests.slice(MAX_VISIBLE_PILLS);
 
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 overflow-hidden rounded px-1.5 py-0.5 text-[11px] font-medium',
-        colorClass
+        'flex min-h-[72px] min-w-0 cursor-pointer flex-col p-1 transition-colors duration-100 hover:bg-zinc-100/90',
+        !inMonth && 'bg-zinc-100/70',
+        isToday && 'ring-1 ring-inset ring-violet-500/50'
       )}
-      title={name}
     >
-      <span className="shrink-0 font-semibold opacity-90">{initials}</span>
-      <span className="truncate">{name}</span>
-    </div>
-  );
-}
-
-interface ToolbarProps {
-  date: Date;
-  label: string;
-  onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY', date?: Date) => void;
-}
-
-function CustomToolbar({ label, onNavigate }: ToolbarProps) {
-  return (
-    <div className="mb-4 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => onNavigate('PREV')}
-          aria-label="Previous month"
+      <div className="mb-0.5 flex shrink-0 justify-end">
+        <span
+          className={cn(
+            'text-sm',
+            isToday ? 'font-semibold text-violet-600' : 'text-zinc-600'
+          )}
         >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => onNavigate('NEXT')}
-          aria-label="Next month"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+          {format(day, 'd')}
+        </span>
       </div>
-      <h2 className="text-lg font-semibold text-foreground">{label}</h2>
-      <div className="h-8 w-8" />
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+        {visible.map((req) => (
+          <LeavePill
+            key={req.id}
+            req={req}
+            onClick={() => onSelectRequest(req)}
+          />
+        ))}
+        {hiddenCount > 0 ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="text-left text-[11px] font-medium text-zinc-500 hover:text-zinc-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                +{hiddenCount} more
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="max-h-64 w-64 overflow-y-auto border-border bg-popover p-2 text-popover-foreground"
+              align="start"
+            >
+              <ul className="space-y-1">
+                {rest.map((req) => (
+                  <li key={req.id}>
+                    <LeavePill
+                      req={req}
+                      onClick={() => onSelectRequest(req)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -148,16 +200,30 @@ export function LeaveCalendar({
   currentEmployeeId,
   isAdmin = false,
 }: LeaveCalendarProps) {
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(() => new Date());
   const [selectedRequest, setSelectedRequest] = useState<ApiLeaveRequest | null>(
     null
   );
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const events = useMemo(() => transformToEvents(requests), [requests]);
+  const { weekDays, rowCount } = useMemo(() => {
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
+    const rangeStart = startOfWeek(monthStart, {
+      weekStartsOn: WEEK_STARTS_ON,
+    });
+    const rangeEnd = endOfWeek(monthEnd, { weekStartsOn: WEEK_STARTS_ON });
+    const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
+    return {
+      weekDays: days,
+      rowCount: Math.ceil(days.length / 7),
+    };
+  }, [date]);
 
-  const handleSelectEvent = useCallback((event: CalendarLeaveEvent) => {
-    setSelectedRequest(event.resource);
+  const monthLabel = format(date, 'MMMM yyyy', { locale: enUS });
+
+  const handleSelectRequest = useCallback((r: ApiLeaveRequest) => {
+    setSelectedRequest(r);
     setSheetOpen(true);
   }, []);
 
@@ -168,22 +234,60 @@ export function LeaveCalendar({
 
   return (
     <>
-      <div className="h-[600px] rounded-xl border bg-card p-4">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          view="month"
-          date={date}
-          onNavigate={setDate}
-          onSelectEvent={handleSelectEvent}
-          components={{
-            event: CustomEventComponent,
-            toolbar: CustomToolbar,
-          }}
-          toolbar
-          popup
-          className="leave-calendar"
-        />
+      <div className="flex h-[600px] flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              onClick={() => setDate((d) => subMonths(d, 1))}
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <button
+              type="button"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              onClick={() => setDate((d) => addMonths(d, 1))}
+              aria-label="Next month"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+          <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+            {monthLabel}
+          </h2>
+          <div className="size-7 shrink-0" aria-hidden />
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-zinc-200/90">
+          <div className="grid shrink-0 grid-cols-7 border-b border-zinc-200/90">
+            {WEEKDAY_LABELS.map((label) => (
+              <div
+                key={label}
+                className="px-1 py-2 text-center text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+          <div
+            className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-y divide-zinc-200/90"
+            style={{
+              gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
+            }}
+          >
+            {weekDays.map((day) => (
+              <DayCell
+                key={day.getTime()}
+                day={day}
+                monthAnchor={date}
+                requests={requests}
+                onSelectRequest={handleSelectRequest}
+              />
+            ))}
+          </div>
+        </div>
       </div>
       <LeaveRequestDetailSheet
         request={selectedRequest}

@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { Department } from './entities/department.entity';
 import { NewDepartmentDto } from './dto/new-department.dto';
 
+/** Matches web `DEPARTMENT_COLORS[0]` when no color is sent (e.g. import flow). */
+const DEFAULT_DEPARTMENT_COLOR = '#6366f1';
+
 @Injectable()
 export class DepartmentService {
   constructor(
@@ -15,8 +18,11 @@ export class DepartmentService {
     organizationId: string,
     department: NewDepartmentDto
   ): Promise<Department> {
+    const color =
+      department.color?.trim() || DEFAULT_DEPARTMENT_COLOR;
     const newDepartment = this.departmentRepository.create({
       ...department,
+      color,
       organization: { id: organizationId },
     });
     return this.departmentRepository.save(newDepartment);

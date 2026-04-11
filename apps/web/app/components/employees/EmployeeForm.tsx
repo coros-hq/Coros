@@ -211,7 +211,7 @@ export function EmployeeForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 py-4"
+      className="flex flex-col gap-4 py-4 "
       noValidate
     >
       {errors._form ? (

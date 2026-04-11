@@ -63,6 +63,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const organization = await this.findOrganizationById(user.organizationId);
+    if (!organization || !organization.isActive) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     return user;
   }
 
@@ -143,12 +152,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid user');
     }
 
-    const organization = await this.findOrganizationById(user.organizationId);
-
-    if (!organization) {
-      throw new UnauthorizedException('Invalid organization');
-    }
-
     return this.generateTokens(user);
   }
 
@@ -182,6 +185,15 @@ export class AuthService {
     });
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const organization = await this.findOrganizationById(user.organizationId);
+    if (!organization || !organization.isActive) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     return this.generateTokens(user);

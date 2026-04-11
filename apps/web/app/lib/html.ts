@@ -1,12 +1,10 @@
-/**
- * Strip HTML for short previews (kanban cards, list rows). SSR-safe.
- */
+/** Plain text for previews and search when content may be HTML from TipTap. */
 export function htmlToPlainText(html: string): string {
   if (!html) return '';
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  if (typeof document === 'undefined') {
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return (d.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
