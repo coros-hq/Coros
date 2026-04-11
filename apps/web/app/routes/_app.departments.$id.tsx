@@ -451,22 +451,24 @@ export default function DepartmentDetailPage() {
         open={employeeSheetOpen}
         onOpenChange={setEmployeeSheetOpen}
       >
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
+        <SheetContent className="flex min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+          <SheetHeader className="shrink-0 border-b px-6 pb-4 pt-6 pr-14 text-left">
             <SheetTitle>Add employee</SheetTitle>
           </SheetHeader>
-          {department && id && (
-            <EmployeeForm
-              mode="create"
-              departments={[department]}
-              positions={allPositions}
-              employees={allEmployees}
-              fixedDepartmentId={id}
-              createPosition={createPosition}
-              onSubmit={handleCreateEmployeeSubmit}
-              onCancel={() => setEmployeeSheetOpen(false)}
-            />
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4">
+            {department && id && (
+              <EmployeeForm
+                mode="create"
+                departments={[department]}
+                positions={allPositions}
+                employees={allEmployees}
+                fixedDepartmentId={id}
+                createPosition={createPosition}
+                onSubmit={handleCreateEmployeeSubmit}
+                onCancel={() => setEmployeeSheetOpen(false)}
+              />
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 

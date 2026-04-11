@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { z } from 'zod';
+import { RichTextEditor } from '~/components/editor/RichTextEditor';
+import { EmployeeMultiSelect } from '~/components/projects/EmployeeMultiSelect';
 import { Button } from '~/components/ui/button';
-import { Checkbox } from '~/components/ui/checkbox';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import {
@@ -11,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select';
-import { Textarea } from '~/components/ui/textarea';
 import type { ApiEmployee } from '~/services/employee.service';
 import type { ApiProject, ProjectStatus } from '~/services/project.service';
 import { DatePicker } from '~/components/ui/date-picker';
@@ -46,6 +46,16 @@ function extractErrorMessage(err: unknown): string {
     return String((err as { message: unknown }).message);
   }
   return 'Something went wrong. Please try again.';
+}
+
+/** Treat TipTap empty document as no description for the API. */
+function normalizeDescriptionHtml(html: string | undefined): string | undefined {
+  if (!html?.trim()) return undefined;
+  if (typeof document === 'undefined') return html;
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  if ((d.textContent ?? '').trim() === '') return undefined;
+  return html;
 }
 
 export interface ProjectFormProps {
@@ -94,18 +104,14 @@ export function ProjectForm({
     if (apiError) setApiError(null);
   }
 
-  function toggleMember(employeeId: string) {
-    const current = values.memberIds ?? [];
-    const next = current.includes(employeeId)
-      ? current.filter((id) => id !== employeeId)
-      : [...current, employeeId];
-    set('memberIds', next);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setApiError(null);
-    const result = formSchema.safeParse(values);
+    const payload: FormValues = {
+      ...values,
+      description: normalizeDescriptionHtml(values.description),
+    };
+    const result = formSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: FieldErrors = {};
       for (const issue of result.error.issues) {
@@ -139,18 +145,19 @@ export function ProjectForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">
+        <Label>
           Description{' '}
           <span className="text-xs font-normal text-muted-foreground">
             (optional)
           </span>
         </Label>
-        <Textarea
-          id="description"
-          placeholder="Brief description of the project..."
-          value={values.description ?? ''}
-          onChange={(e) => set('description', e.target.value)}
-          rows={3}
+        <RichTextEditor
+          content={values.description ?? ''}
+          onChange={(html) => set('description', html)}
+          placeholder="Brief description of the project…"
+          showToolbar
+          minHeight="140px"
+          className="min-h-[140px]"
         />
       </div>
 
@@ -200,33 +207,11 @@ export function ProjectForm({
               (optional)
             </span>
           </Label>
-          <div className="max-h-32 overflow-y-auto rounded-md border border-input p-3">
-            <div className="space-y-2">
-              {employees.map((emp) => {
-                const name = `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim();
-                const label = emp.user?.email ? `${name} (${emp.user.email})` : name || 'Unknown';
-                const isChecked = (values.memberIds ?? []).includes(emp.id);
-                return (
-                  <div
-                    key={emp.id}
-                    className="flex items-center space-x-2"
-                  >
-                    <Checkbox
-                      id={`member-${emp.id}`}
-                      checked={isChecked}
-                      onCheckedChange={() => toggleMember(emp.id)}
-                    />
-                    <label
-                      htmlFor={`member-${emp.id}`}
-                      className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <EmployeeMultiSelect
+            employees={employees}
+            value={values.memberIds ?? []}
+            onChange={(ids) => set('memberIds', ids)}
+          />
         </div>
       ) : null}
 

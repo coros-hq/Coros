@@ -12,12 +12,14 @@ import { Task } from '../task/entities/task.entity';
 import { NotificationModule } from '../notification/notification.module';
 import { InviteModule } from '../invite/invite.module';
 import { EmailModule } from '../email/email.module';
+import { RefreshToken } from '../auth/entities/refreshToken.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Employee,
       User,
+      RefreshToken,
       LeaveRequest,
       LeaveBalance,
       Department,

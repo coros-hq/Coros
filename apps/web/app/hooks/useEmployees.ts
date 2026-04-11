@@ -5,8 +5,11 @@ import type { ApiPosition } from '~/services/position.service';
 import {
   listEmployees,
   createEmployee,
+  bulkCreateEmployees,
   updateEmployee,
   deleteEmployee,
+  deactivateEmployee,
+  activateEmployee,
   type CreateEmployeePayload,
   type UpdateEmployeePayload,
 } from '~/services/employee.service';
@@ -64,6 +67,14 @@ export function useEmployees() {
     [refetch]
   );
 
+  const bulkCreate = useCallback(
+    async (payloads: CreateEmployeePayload[]) => {
+      await bulkCreateEmployees(payloads);
+      await refetch();
+    },
+    [refetch]
+  );
+
   const update = useCallback(
     async (id: string, payload: UpdateEmployeePayload) => {
       await updateEmployee(id, payload);
@@ -75,6 +86,22 @@ export function useEmployees() {
   const remove = useCallback(
     async (id: string) => {
       await deleteEmployee(id);
+      await refetch();
+    },
+    [refetch]
+  );
+
+  const deactivate = useCallback(
+    async (id: string) => {
+      await deactivateEmployee(id);
+      await refetch();
+    },
+    [refetch]
+  );
+
+  const activate = useCallback(
+    async (id: string) => {
+      await activateEmployee(id);
       await refetch();
     },
     [refetch]
@@ -106,8 +133,11 @@ export function useEmployees() {
     error,
     refetch,
     create,
+    bulkCreate,
     update,
     remove,
+    deactivate,
+    activate,
     createDepartment: createDept,
     createPosition: createPos,
   };

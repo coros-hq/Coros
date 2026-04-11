@@ -607,26 +607,26 @@ export default function LeaveRequestsPage() {
             <Button onClick={() => setSheetOpen(true)}>+ Request leave</Button>
           </div>
         ) : viewMode === 'calendar' ? (
-          <div className="-mx-6 rounded-xl bg-zinc-950 px-6 py-6">
+          <div className="-mx-6 rounded-xl bg-zinc-50/90 px-6 py-6 ring-1 ring-zinc-200/60">
             {!isLoading && balances.length > 0 ? (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {balances.map((balance) => (
                   <div
                     key={balance.id}
-                    className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+                    className="rounded-lg border border-border bg-card p-4"
                   >
-                    <p className="text-xs capitalize text-zinc-500">
+                    <p className="text-xs capitalize text-muted-foreground">
                       {balance.type.replace('_', ' ')}
                     </p>
-                    <p className="text-2xl font-semibold text-zinc-100">
+                    <p className="text-2xl font-semibold text-foreground">
                       {balance.remaining}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted-foreground">
                       of {balance.total} days
                     </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
+                    <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
                       <div
-                        className="h-1.5 rounded-full bg-violet-600"
+                        className="h-1.5 rounded-full bg-primary"
                         style={{
                           width: `${Math.min(
                             (balance.total > 0
@@ -649,7 +649,7 @@ export default function LeaveRequestsPage() {
                     setStatusFilter((v ?? 'all') as RequestStatus | 'all')
                   }
                 >
-                  <SelectTrigger className="h-9 w-[10.5rem] shrink-0 rounded-lg border-zinc-800 bg-zinc-900 text-sm text-zinc-300 hover:border-zinc-700 md:w-44">
+                  <SelectTrigger className="h-9 w-[10.5rem] shrink-0 rounded-lg border-border bg-background text-sm text-foreground hover:border-zinc-400 md:w-44">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -664,7 +664,7 @@ export default function LeaveRequestsPage() {
                   value={typeFilter}
                   onValueChange={(v) => setTypeFilter(v ?? 'all')}
                 >
-                  <SelectTrigger className="h-9 w-[10.5rem] shrink-0 rounded-lg border-zinc-800 bg-zinc-900 text-sm text-zinc-300 hover:border-zinc-700 md:w-44">
+                  <SelectTrigger className="h-9 w-[10.5rem] shrink-0 rounded-lg border-border bg-background text-sm text-foreground hover:border-zinc-400 md:w-44">
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>

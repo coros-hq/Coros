@@ -8,7 +8,10 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  Upload,
+  UserCheck,
   UserPlus,
+  UserX,
 } from 'lucide-react';
 
 import {
@@ -52,13 +55,19 @@ import { convertToCSV, downloadCSV } from '~/lib/csv';
 import { ExportButton } from '~/components/common/ExportButton';
 import { EmployeeCard } from '~/components/employees/EmployeeCard';
 import { EmployeeForm } from '~/components/employees/EmployeeForm';
+import { EmployeeImportSheet } from '~/components/employees/EmployeeImportSheet';
 import { useEmployees } from '~/hooks/useEmployees';
 import { useAuthStore } from '~/stores/auth.store';
+import { employeeIdsOnApprovedLeaveToday } from '~/lib/employee-on-leave';
 import type {
   ApiEmployee,
   CreateEmployeePayload,
   UpdateEmployeePayload,
 } from '~/services/employee.service';
+import {
+  getAllLeaveRequests,
+  type ApiLeaveRequest,
+} from '~/services/leave-request.service';
 
 type RowStatus = 'active' | 'on_leave' | 'inactive';
 
@@ -74,9 +83,10 @@ interface EmployeeRow {
   raw: ApiEmployee;
 }
 
-function mapStatus(s?: string): RowStatus {
-  if (s === 'on_leave') return 'on_leave';
+function mapStatus(s?: string, onLeaveToday?: boolean): RowStatus {
   if (s === 'inactive' || s === 'terminated') return 'inactive';
+  if (s === 'on_leave') return 'on_leave';
+  if (onLeaveToday) return 'on_leave';
   return 'active';
 }
 
@@ -90,7 +100,14 @@ function formatJoinedDate(d?: string): string {
   }
 }
 
-function mapEmployee(e: ApiEmployee): EmployeeRow {
+function mapEmployee(
+  e: ApiEmployee,
+  onLeaveTodayIds?: Set<string>
+): EmployeeRow {
+  const onLeaveToday =
+    (onLeaveTodayIds?.has(e.id) ?? false) &&
+    e.status !== 'inactive' &&
+    e.status !== 'terminated';
   return {
     id: e.id,
     name: `${e.firstName} ${e.lastName}`.trim(),
@@ -98,10 +115,23 @@ function mapEmployee(e: ApiEmployee): EmployeeRow {
     department: e.department?.name ?? '—',
     departmentId: e.department?.id ?? '',
     position: e.position?.name ?? '—',
-    status: mapStatus(e.status),
+    status: mapStatus(e.status, onLeaveToday),
     joinedAt: formatJoinedDate(e.hireDate),
     raw: e,
   };
+}
+
+function showDeactivateAccount(e: ApiEmployee): boolean {
+  if (e.user?.isActive === false) return false;
+  const s = e.status?.toLowerCase() ?? '';
+  if (s === 'inactive' || s === 'terminated') return false;
+  return true;
+}
+
+function showActivateAccount(e: ApiEmployee): boolean {
+  if (e.user?.isActive === false) return true;
+  const s = e.status?.toLowerCase() ?? '';
+  return s === 'inactive' || s === 'terminated';
 }
 
 function StatusBadge({ status }: { status: RowStatus }) {
@@ -157,7 +187,13 @@ export default function EmployeesIndexPage() {
   const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeRow | null>(
     null
   );
+  const [employeeToDeactivate, setEmployeeToDeactivate] =
+    useState<EmployeeRow | null>(null);
+  const [employeeToActivate, setEmployeeToActivate] =
+    useState<EmployeeRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deactivateError, setDeactivateError] = useState<string | null>(null);
+  const [activateError, setActivateError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<RowStatus | 'all'>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,6 +201,8 @@ export default function EmployeesIndexPage() {
     if (typeof window === 'undefined') return 'table';
     return localStorage.getItem('employees_view') === 'grid' ? 'grid' : 'table';
   });
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [leaveRequests, setLeaveRequests] = useState<ApiLeaveRequest[]>([]);
 
   const {
     employees,
@@ -173,8 +211,11 @@ export default function EmployeesIndexPage() {
     isLoading,
     error,
     create,
+    bulkCreate,
     update,
     remove,
+    deactivate,
+    activate,
     createDepartment,
     createPosition,
   } = useEmployees();
@@ -192,7 +233,29 @@ export default function EmployeesIndexPage() {
     localStorage.setItem('employees_view', viewMode);
   }, [viewMode]);
 
-  const rows = useMemo(() => employees.map(mapEmployee), [employees]);
+  useEffect(() => {
+    let cancelled = false;
+    getAllLeaveRequests()
+      .then((list) => {
+        if (!cancelled) setLeaveRequests(list);
+      })
+      .catch(() => {
+        if (!cancelled) setLeaveRequests([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const onLeaveTodayIds = useMemo(
+    () => employeeIdsOnApprovedLeaveToday(leaveRequests),
+    [leaveRequests]
+  );
+
+  const rows = useMemo(
+    () => employees.map((e) => mapEmployee(e, onLeaveTodayIds)),
+    [employees, onLeaveTodayIds]
+  );
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -367,6 +430,28 @@ export default function EmployeesIndexPage() {
                       <Pencil className="mr-2 h-3.5 w-3.5" />
                       Edit
                     </DropdownMenuItem>
+                    {showDeactivateAccount(row.original.raw) ? (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setEmployeeToDeactivate(row.original);
+                        }}
+                      >
+                        <UserX className="mr-2 h-3.5 w-3.5" />
+                        Deactivate account
+                      </DropdownMenuItem>
+                    ) : null}
+                    {showActivateAccount(row.original.raw) ? (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setEmployeeToActivate(row.original);
+                        }}
+                      >
+                        <UserCheck className="mr-2 h-3.5 w-3.5" />
+                        Activate account
+                      </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onSelect={(e) => {
@@ -500,6 +585,17 @@ export default function EmployeesIndexPage() {
       ) : null}
       {canMutate && (
         <Button
+          type="button"
+          variant="outline"
+          className="shrink-0 gap-1.5"
+          onClick={() => setImportSheetOpen(true)}
+        >
+          <Upload className="h-4 w-4 shrink-0" />
+          Import
+        </Button>
+      )}
+      {canMutate && (
+        <Button
           className="shrink-0 gap-1.5"
           onClick={() => {
             setEditingEmployee(null);
@@ -613,6 +709,7 @@ export default function EmployeesIndexPage() {
                   <EmployeeCard
                     key={row.id}
                     employee={row.raw}
+                    displayStatus={row.status}
                     canMutate={canMutate}
                     departmentColor={
                       deptColorById[row.departmentId] ?? undefined
@@ -622,6 +719,16 @@ export default function EmployeesIndexPage() {
                       setEditingEmployee(row.raw);
                       setSheetOpen(true);
                     }}
+                    onDeactivate={
+                      showDeactivateAccount(row.raw)
+                        ? () => setEmployeeToDeactivate(row)
+                        : undefined
+                    }
+                    onActivate={
+                      showActivateAccount(row.raw)
+                        ? () => setEmployeeToActivate(row)
+                        : undefined
+                    }
                     onDelete={() => setEmployeeToDelete(row)}
                   />
                 ))}
@@ -641,13 +748,13 @@ export default function EmployeesIndexPage() {
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
+        <SheetContent className="flex min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+          <SheetHeader className="shrink-0 border-b px-6 pb-4 pt-6 pr-14 text-left">
             <SheetTitle>
               {editingEmployee ? 'Edit employee' : 'Add employee'}
             </SheetTitle>
           </SheetHeader>
-          <div className="mt-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4">
             <EmployeeForm
               mode={editingEmployee ? 'edit' : 'create'}
               employee={editingEmployee ?? undefined}
@@ -664,6 +771,110 @@ export default function EmployeesIndexPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <EmployeeImportSheet
+        open={importSheetOpen}
+        onOpenChange={setImportSheetOpen}
+        departments={departments}
+        positions={positions}
+        employees={employees}
+        createDepartment={createDepartment}
+        createPosition={createPosition}
+        onImport={bulkCreate}
+      />
+
+      <AlertDialog
+        open={!!employeeToDeactivate}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEmployeeToDeactivate(null);
+            setDeactivateError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate account</AlertDialogTitle>
+            <AlertDialogDescription>
+              This signs {employeeToDeactivate?.name} out everywhere and blocks
+              sign-in until you activate the account again. The employee profile
+              stays in your directory.
+              {deactivateError ? (
+                <span className="mt-2 block text-destructive">
+                  {deactivateError}
+                </span>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!employeeToDeactivate) return;
+                setDeactivateError(null);
+                try {
+                  await deactivate(employeeToDeactivate.id);
+                  setEmployeeToDeactivate(null);
+                } catch (err: unknown) {
+                  const msg =
+                    err && typeof err === 'object' && 'message' in err
+                      ? String((err as { message: unknown }).message)
+                      : 'Failed to deactivate account';
+                  setDeactivateError(msg);
+                }
+              }}
+            >
+              Deactivate account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!employeeToActivate}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEmployeeToActivate(null);
+            setActivateError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Activate account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Allow {employeeToActivate?.name} to sign in again with their email
+              and password.
+              {activateError ? (
+                <span className="mt-2 block text-destructive">
+                  {activateError}
+                </span>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!employeeToActivate) return;
+                setActivateError(null);
+                try {
+                  await activate(employeeToActivate.id);
+                  setEmployeeToActivate(null);
+                } catch (err: unknown) {
+                  const msg =
+                    err && typeof err === 'object' && 'message' in err
+                      ? String((err as { message: unknown }).message)
+                      : 'Failed to activate account';
+                  setActivateError(msg);
+                }
+              }}
+            >
+              Activate account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={!!employeeToDelete}

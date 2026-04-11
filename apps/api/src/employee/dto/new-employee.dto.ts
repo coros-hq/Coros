@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsEmail,
@@ -20,6 +21,14 @@ export class NewEmployeeDto {
   @IsNotEmpty()
   lastName!: string;
 
+  @Transform(({ value }) => {
+    if (value == null || value === '') return value;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value);
+    }
+    if (typeof value === 'string') return value.trim();
+    return String(value).trim();
+  })
   @IsEmail()
   @IsNotEmpty()
   email!: string;

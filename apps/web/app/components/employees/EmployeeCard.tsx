@@ -1,7 +1,15 @@
 // apps/web/app/components/employees/EmployeeCard.tsx
 // Card presentation for an employee in grid view on the employees list
 import { Link } from 'react-router';
-import { Mail, MoreHorizontal, Pencil, Phone, Trash2 } from 'lucide-react';
+import {
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Trash2,
+  UserCheck,
+  UserX,
+} from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
@@ -61,18 +69,25 @@ function StatusBadge({ status }: { status: RowStatus }) {
 
 export interface EmployeeCardProps {
   employee: ApiEmployee;
+  /** When set (e.g. list row with leave-aware status), overrides `employee.status` for the badge. */
+  displayStatus?: RowStatus;
   departmentColor?: string;
   canMutate: boolean;
   onEdit: () => void;
+  onDeactivate?: () => void;
+  onActivate?: () => void;
   onDelete: () => void;
   onClick: () => void;
 }
 
 export function EmployeeCard({
   employee,
+  displayStatus,
   departmentColor,
   canMutate,
   onEdit,
+  onDeactivate,
+  onActivate,
   onDelete,
   onClick,
 }: EmployeeCardProps) {
@@ -87,7 +102,7 @@ export function EmployeeCard({
   const phone = employee.phone?.trim() || '—';
   const position = employee.position?.name?.trim() || '—';
   const departmentName = employee.department?.name?.trim() || '—';
-  const status = mapStatus(employee.status);
+  const status = displayStatus ?? mapStatus(employee.status);
   const profilePath = `/employees/${employee.id}`;
 
   return (
@@ -137,6 +152,28 @@ export function EmployeeCard({
                 <Pencil className="mr-2 h-3.5 w-3.5" />
                 Edit
               </DropdownMenuItem>
+              {onDeactivate ? (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    onDeactivate();
+                  }}
+                >
+                  <UserX className="mr-2 h-3.5 w-3.5" />
+                  Deactivate account
+                </DropdownMenuItem>
+              ) : null}
+              {onActivate ? (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    onActivate();
+                  }}
+                >
+                  <UserCheck className="mr-2 h-3.5 w-3.5" />
+                  Activate account
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onSelect={(e) => {

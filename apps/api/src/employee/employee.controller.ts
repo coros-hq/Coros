@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import { Employee } from './entities/employee.entity';
+import { BulkCreateEmployeesDto } from './dto/bulk-create-employees.dto';
 import { NewEmployeeDto } from './dto/new-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -23,6 +24,18 @@ export class EmployeeController {
     @Body() dto: NewEmployeeDto
   ): Promise<{ employee: Employee }> {
     return await this.employeeService.createEmployee(organizationId, dto);
+  }
+
+  @Post('/bulk')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async bulkCreateEmployees(
+    @CurrentUser('organizationId') organizationId: string,
+    @Body() body: BulkCreateEmployeesDto
+  ): Promise<{ employees: Employee[] }> {
+    return await this.employeeService.bulkCreateEmployees(
+      organizationId,
+      body.employees,
+    );
   }
 
   @Get()
@@ -59,6 +72,29 @@ export class EmployeeController {
     @Body() dto: UpdateEmployeeDto
   ): Promise<Employee> {
     return await this.employeeService.updateEmployee(id, organizationId, dto);
+  }
+
+  @Post(':id/deactivate')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async deactivateEmployee(
+    @Param('id') id: string,
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('id') actingUserId: string
+  ): Promise<Employee> {
+    return await this.employeeService.deactivateEmployee(
+      id,
+      organizationId,
+      actingUserId
+    );
+  }
+
+  @Post(':id/activate')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async activateEmployee(
+    @Param('id') id: string,
+    @CurrentUser('organizationId') organizationId: string
+  ): Promise<Employee> {
+    return await this.employeeService.activateEmployee(id, organizationId);
   }
 
   @Delete(':id')

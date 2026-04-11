@@ -39,15 +39,15 @@ function getStatusPillClasses(status: string): string {
   const s = status?.toLowerCase() ?? '';
   switch (s) {
     case 'approved':
-      return 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400';
+      return 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-800';
     case 'pending':
-      return 'bg-amber-500/10 border border-amber-500/20 text-amber-400';
+      return 'bg-amber-500/10 border border-amber-500/25 text-amber-800';
     case 'rejected':
-      return 'bg-red-500/10 border border-red-500/20 text-red-400';
+      return 'bg-red-500/10 border border-red-500/25 text-red-800';
     case 'cancelled':
-      return 'bg-zinc-500/10 border border-zinc-500/20 text-zinc-400';
+      return 'bg-zinc-500/10 border border-zinc-500/25 text-zinc-600';
     default:
-      return 'bg-amber-500/10 border border-amber-500/20 text-amber-400';
+      return 'bg-amber-500/10 border border-amber-500/25 text-amber-800';
   }
 }
 
@@ -98,7 +98,7 @@ function LeavePill({
       )}
       title={name}
     >
-      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-zinc-200">
+      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-medium text-zinc-700">
         {initials}
       </span>
       <span className="truncate text-xs font-medium">{name}</span>
@@ -127,16 +127,16 @@ function DayCell({
   return (
     <div
       className={cn(
-        'flex min-h-[72px] min-w-0 cursor-pointer flex-col p-1 transition-colors duration-100 hover:bg-zinc-800/30',
-        !inMonth && 'bg-zinc-950/60',
-        isToday && 'ring-1 ring-inset ring-violet-500/40'
+        'flex min-h-[72px] min-w-0 cursor-pointer flex-col p-1 transition-colors duration-100 hover:bg-zinc-100/90',
+        !inMonth && 'bg-zinc-100/70',
+        isToday && 'ring-1 ring-inset ring-violet-500/50'
       )}
     >
       <div className="mb-0.5 flex shrink-0 justify-end">
         <span
           className={cn(
             'text-sm',
-            isToday ? 'font-semibold text-violet-400' : 'text-zinc-400'
+            isToday ? 'font-semibold text-violet-600' : 'text-zinc-600'
           )}
         >
           {format(day, 'd')}
@@ -155,14 +155,14 @@ function DayCell({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="text-left text-[11px] font-medium text-zinc-500 hover:text-zinc-300"
+                className="text-left text-[11px] font-medium text-zinc-500 hover:text-zinc-800"
                 onClick={(e) => e.stopPropagation()}
               >
                 +{hiddenCount} more
               </button>
             </PopoverTrigger>
             <PopoverContent
-              className="max-h-64 w-64 overflow-y-auto border-zinc-800 bg-zinc-900 p-2 text-zinc-300"
+              className="max-h-64 w-64 overflow-y-auto border-border bg-popover p-2 text-popover-foreground"
               align="start"
             >
               <ul className="space-y-1">
@@ -234,12 +234,12 @@ export function LeaveCalendar({
 
   return (
     <>
-      <div className="flex h-[600px] flex-col rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+      <div className="flex h-[600px] flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
               onClick={() => setDate((d) => subMonths(d, 1))}
               aria-label="Previous month"
             >
@@ -247,21 +247,21 @@ export function LeaveCalendar({
             </button>
             <button
               type="button"
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
               onClick={() => setDate((d) => addMonths(d, 1))}
               aria-label="Next month"
             >
               <ChevronRight className="size-4" />
             </button>
           </div>
-          <h2 className="text-base font-semibold tracking-tight text-zinc-100">
+          <h2 className="text-base font-semibold tracking-tight text-zinc-900">
             {monthLabel}
           </h2>
           <div className="size-7 shrink-0" aria-hidden />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800/60">
-          <div className="grid shrink-0 grid-cols-7 border-b border-zinc-800/60">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-zinc-200/90">
+          <div className="grid shrink-0 grid-cols-7 border-b border-zinc-200/90">
             {WEEKDAY_LABELS.map((label) => (
               <div
                 key={label}
@@ -272,7 +272,7 @@ export function LeaveCalendar({
             ))}
           </div>
           <div
-            className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-y divide-zinc-800/60"
+            className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-y divide-zinc-200/90"
             style={{
               gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
             }}

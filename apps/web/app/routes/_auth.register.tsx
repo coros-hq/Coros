@@ -93,10 +93,10 @@ export default function RegisterPage() {
       ? 'No industries available'
       : 'Select your industry';
 
-  /** Base UI may render the raw `value` (UUID) in the trigger; explicit children forces the label. */
-  const industryTriggerLabel = form.industryId
-    ? industries.find((i) => i.id === form.industryId)?.name ?? '—'
-    : undefined;
+  /** Remount when options load so Radix Select internal state matches items (fixes first selection). */
+  const industrySelectKey = industriesLoading
+    ? 'loading'
+    : industries.map((i) => i.id).join(',') || 'empty';
 
   return (
     <div>
@@ -135,12 +135,13 @@ export default function RegisterPage() {
             Industry
           </Label>
           <Select
+            key={industrySelectKey}
             disabled={formBusy || industries.length === 0}
             onValueChange={(val) => setForm((f) => ({ ...f, industryId: val }))}
             value={form.industryId || undefined}
           >
             <SelectTrigger className="h-10 w-full" id="industry">
-              <SelectValue placeholder={industryPlaceholder}>{industryTriggerLabel}</SelectValue>
+              <SelectValue placeholder={industryPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {industries.map((ind) => (

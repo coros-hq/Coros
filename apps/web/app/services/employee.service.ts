@@ -12,7 +12,7 @@ export interface ApiEmployee {
   dateOfBirth?: string;
   employmentType?: string;
   address?: string;
-  user?: { id: string; email: string; role?: string };
+  user?: { id: string; email: string; role?: string; isActive?: boolean };
   department?: { id: string; name: string };
   position?: { id: string; name: string };
   managerId?: string;
@@ -69,6 +69,39 @@ export async function createEmployee(
   return api.post<{ employee: ApiEmployee }>('/employees/create', payload);
 }
 
+function coerceEmailString(raw: unknown): string {
+  if (raw == null) return '';
+  if (typeof raw === 'string') return raw.trim();
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return String(raw).trim();
+  }
+  return String(raw).trim();
+}
+
+function sanitizeEmailString(raw: unknown): string {
+  let s = coerceEmailString(raw);
+  if (!s) return '';
+  s = s.replace(/^\uFEFF/, '').replace(/\u200B/g, '').trim();
+  return s;
+}
+
+export async function bulkCreateEmployees(
+  payloads: CreateEmployeePayload[]
+): Promise<{ employees: ApiEmployee[] }> {
+  const employees = payloads.map((p, i) => {
+    const email = sanitizeEmailString(p?.email);
+    if (!email) {
+      throw new Error(
+        `Row ${i + 1}: email is missing. Ensure every row has an email before importing.`
+      );
+    }
+    return { ...p, email };
+  });
+  return api.post<{ employees: ApiEmployee[] }>('/employees/bulk', {
+    employees,
+  });
+}
+
 export async function updateEmployee(
   id: string,
   payload: UpdateEmployeePayload
@@ -78,4 +111,12 @@ export async function updateEmployee(
 
 export async function deleteEmployee(id: string): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/employees/${id}`);
+}
+
+export async function deactivateEmployee(id: string): Promise<ApiEmployee> {
+  return api.post<ApiEmployee>(`/employees/${id}/deactivate`, {});
+}
+
+export async function activateEmployee(id: string): Promise<ApiEmployee> {
+  return api.post<ApiEmployee>(`/employees/${id}/activate`, {});
 }
