@@ -5,6 +5,7 @@ import { differenceInDays, format, parseISO, isValid } from 'date-fns';
 import {
   Ban,
   CalendarDays,
+  CalendarPlus,
   Check,
   List,
   MoreHorizontal,
@@ -594,40 +595,6 @@ export default function LeaveRequestsPage() {
           </div>
         ) : null}
 
-        {!isLoading && balances.length > 0 ? (
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {balances.map((balance) => (
-              <div
-                key={balance.id}
-                className="rounded-lg border bg-card p-4"
-              >
-                <p className="text-xs text-muted-foreground capitalize">
-                  {balance.type.replace('_', ' ')}
-                </p>
-                <p className="text-2xl font-semibold text-foreground">
-                  {balance.remaining}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  of {balance.total} days
-                </p>
-                <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                  <div
-                    className="h-1.5 rounded-full bg-primary"
-                    style={{
-                      width: `${Math.min(
-                        (balance.total > 0
-                          ? (balance.remaining / balance.total) * 100
-                          : 0),
-                        100
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
         {!isLoading && filteredRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -640,67 +607,137 @@ export default function LeaveRequestsPage() {
             <Button onClick={() => setSheetOpen(true)}>+ Request leave</Button>
           </div>
         ) : viewMode === 'calendar' ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-nowrap items-center gap-2">
-              <Select
-                value={statusFilter}
-                onValueChange={(v) =>
-                  setStatusFilter((v ?? 'all') as RequestStatus | 'all')
-                }
-              >
-                <SelectTrigger className="w-[10.5rem] shrink-0 border-border bg-background md:w-44">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_FILTER_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={typeFilter}
-                onValueChange={(v) => setTypeFilter(v ?? 'all')}
-              >
-                <SelectTrigger className="w-[10.5rem] shrink-0 border-border bg-background md:w-44">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_FILTER_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                className="shrink-0 gap-1.5"
-                onClick={() => setSheetOpen(true)}
-              >
-                <CalendarDays className="h-4 w-4 shrink-0" />
-                Request leave
-              </Button>
+          <div className="-mx-6 rounded-xl bg-zinc-950 px-6 py-6">
+            {!isLoading && balances.length > 0 ? (
+              <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {balances.map((balance) => (
+                  <div
+                    key={balance.id}
+                    className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+                  >
+                    <p className="text-xs capitalize text-zinc-500">
+                      {balance.type.replace('_', ' ')}
+                    </p>
+                    <p className="text-2xl font-semibold text-zinc-100">
+                      {balance.remaining}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      of {balance.total} days
+                    </p>
+                    <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
+                      <div
+                        className="h-1.5 rounded-full bg-violet-600"
+                        style={{
+                          width: `${Math.min(
+                            (balance.total > 0
+                              ? (balance.remaining / balance.total) * 100
+                              : 0),
+                            100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-nowrap items-center gap-2">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) =>
+                    setStatusFilter((v ?? 'all') as RequestStatus | 'all')
+                  }
+                >
+                  <SelectTrigger className="h-9 w-[10.5rem] shrink-0 rounded-lg border-zinc-800 bg-zinc-900 text-sm text-zinc-300 hover:border-zinc-700 md:w-44">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_FILTER_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={typeFilter}
+                  onValueChange={(v) => setTypeFilter(v ?? 'all')}
+                >
+                  <SelectTrigger className="h-9 w-[10.5rem] shrink-0 rounded-lg border-zinc-800 bg-zinc-900 text-sm text-zinc-300 hover:border-zinc-700 md:w-44">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPE_FILTER_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="h-9 shrink-0 gap-1.5 rounded-lg bg-violet-600 px-4 text-sm font-medium text-white hover:bg-violet-500"
+                  onClick={() => setSheetOpen(true)}
+                >
+                  <CalendarPlus className="size-4 shrink-0" />
+                  Request leave
+                </Button>
+              </div>
+              <LeaveCalendar
+                requests={filteredRequests}
+                onApprove={approve}
+                onReject={reject}
+                onCancel={cancel}
+                currentEmployeeId={employee?.id}
+                isAdmin={isAdmin}
+              />
             </div>
-            <LeaveCalendar
-              requests={filteredRequests}
-              onApprove={approve}
-              onReject={reject}
-              onCancel={cancel}
-              currentEmployeeId={employee?.id}
-              isAdmin={isAdmin}
-            />
           </div>
         ) : (
-          <DataTable<LeaveRequestRow>
-            columns={columns}
-            data={filteredRows}
-            isLoading={isLoading}
-            searchPlaceholder="Search requests…"
-            toolbar={toolbar}
-            globalFilter={searchQuery}
-            onGlobalFilterChange={setSearchQuery}
-          />
+          <>
+            {!isLoading && balances.length > 0 ? (
+              <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {balances.map((balance) => (
+                  <div
+                    key={balance.id}
+                    className="rounded-lg border bg-card p-4"
+                  >
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {balance.type.replace('_', ' ')}
+                    </p>
+                    <p className="text-2xl font-semibold text-foreground">
+                      {balance.remaining}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      of {balance.total} days
+                    </p>
+                    <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-1.5 rounded-full bg-primary"
+                        style={{
+                          width: `${Math.min(
+                            (balance.total > 0
+                              ? (balance.remaining / balance.total) * 100
+                              : 0),
+                            100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <DataTable<LeaveRequestRow>
+              columns={columns}
+              data={filteredRows}
+              isLoading={isLoading}
+              searchPlaceholder="Search requests…"
+              toolbar={toolbar}
+              globalFilter={searchQuery}
+              onGlobalFilterChange={setSearchQuery}
+            />
+          </>
         )}
       </div>
 
