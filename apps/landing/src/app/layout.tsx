@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/landing/ThemeProvider";
 
-const geistSans = Geist({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -28,6 +26,9 @@ export const metadata: Metadata = {
       },
     ],
   },
+  icons: {
+    icon: '/assets/logo.svg'
+  }
 };
 
 
@@ -42,13 +43,12 @@ export default function RootLayout({
       className={cn(
         'h-full scroll-smooth',
         'antialiased',
-        geistSans.variable,
-        geistMono.variable,
+        inter.variable,
         'font-sans'
       )}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
+      <body className="flex min-h-full flex-col bg-[var(--bg)] text-[var(--text-primary)]">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
