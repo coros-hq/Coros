@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Github, Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { GITHUB_URL, REGISTER_URL } from "@/lib/landing-links";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/landing/ThemeToggle";
 
 function LogoMark() {
   return (
     <svg
-      width="28"
-      height="28"
+      width="24"
+      height="24"
       viewBox="0 0 48 48"
       fill="none"
       className="shrink-0"
       aria-hidden
     >
-      <rect width="48" height="48" rx="10" fill="#7c3aed" />
+      <rect width="48" height="48" rx="10" fill="#5B45E0" />
       <path
         d="M31 13 A13 13 0 1 0 31 35"
         stroke="white"
@@ -42,7 +42,7 @@ type NavItem = {
 
 const navLinks: NavItem[] = [
   { href: "#features", label: "Features" },
-  { href: "#open-source", label: "For teams" },
+  { href: "#open-source", label: "Open source" },
   { href: "#pricing", label: "Pricing" },
 ];
 
@@ -50,105 +50,123 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-zinc-200/80 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header
+      className="sticky top-0 z-50 w-full"
+      style={{ borderBottom: "1px solid var(--border)" }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{ background: "var(--nav-bg)", backdropFilter: "blur(12px)" }}
+        aria-hidden
+      />
+      <div className="landing-container relative flex h-[56px] items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-zinc-900"
+          className="relative z-10 flex min-w-0 items-center gap-2"
+          style={{ color: "var(--text-primary)" }}
         >
           <LogoMark />
-          <span className="font-serif text-base font-normal">Coros</span>
+          <span
+            className="text-[16px] font-semibold leading-none"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            Coros
+          </span>
         </Link>
 
         <nav
-          className="hidden items-center gap-8 md:flex"
+          className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-8 md:flex"
           aria-label="Primary"
         >
           {navLinks.map((item) => (
             <Link
               key={item.label}
               href={item.href}
-              className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+              className="text-[14px] font-normal leading-none text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="relative z-10 hidden items-center gap-2 md:flex">
+          <ThemeToggle />
           <Link
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            className="flex size-8 items-center justify-center rounded-md transition-colors hover:bg-[var(--bg-secondary)]"
+            style={{ color: "var(--text-secondary)" }}
             aria-label="Coros on GitHub"
           >
-            <Github className="size-5" aria-hidden />
+            <Github className="size-4" aria-hidden />
           </Link>
-          <Button
-            asChild
-            size="lg"
-            className="h-9 rounded-lg border-0 bg-[#7c3aed] px-4 py-2 text-sm font-medium text-white hover:bg-[#6d28d9]"
+          <Link
+            href={REGISTER_URL}
+            className="inline-flex items-center rounded-[8px] bg-[#5b45e0] text-[13px] font-medium text-white transition-colors hover:bg-[#4936c2]"
+            style={{ padding: "7px 16px" }}
           >
-            <Link href={REGISTER_URL}>Get started free</Link>
-          </Button>
+            Get started free
+          </Link>
         </div>
 
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="relative z-10 flex items-center gap-1 md:hidden">
+          <ThemeToggle />
           <Link
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            className="flex size-8 items-center justify-center rounded-md transition-colors hover:bg-[var(--bg-secondary)]"
+            style={{ color: "var(--text-secondary)" }}
             aria-label="Coros on GitHub"
           >
-            <Github className="size-5" aria-hidden />
+            <Github className="size-4" aria-hidden />
           </Link>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
-            className="text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            className="rounded-md p-2 transition-colors"
+            style={{ color: "var(--text-secondary)" }}
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
           >
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </Button>
+          </button>
         </div>
       </div>
 
       <div
         id="mobile-nav"
         className={cn(
-          "border-b border-zinc-200/80 bg-background/95 backdrop-blur-xl md:hidden",
+          "relative md:hidden",
           open ? "block" : "hidden"
         )}
+        style={{ borderTop: "1px solid var(--border)", background: "var(--bg)" }}
       >
         <nav
-          className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 sm:px-6"
+          className="landing-container flex flex-col gap-1 py-4"
           aria-label="Mobile"
         >
           {navLinks.map((item) => (
             <Link
               key={`${item.label}-mobile`}
               href={item.href}
-              className="py-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+              className="py-2 text-[14px] transition-colors"
+              style={{ color: "var(--text-secondary)" }}
               onClick={() => setOpen(false)}
             >
               {item.label}
             </Link>
           ))}
-          <Button
-            asChild
-            size="lg"
-            className="mt-2 h-10 w-full rounded-lg border-0 bg-[#7c3aed] text-sm font-medium text-white hover:bg-[#6d28d9]"
+          <Link
+            href={REGISTER_URL}
+            className="mt-2 inline-flex w-full items-center justify-center rounded-[8px] text-[13px] font-medium text-white"
+            style={{ background: "var(--accent)", padding: "10px 16px" }}
+            onClick={() => setOpen(false)}
           >
-            <Link href={REGISTER_URL} onClick={() => setOpen(false)}>
-              Get started free
-            </Link>
-          </Button>
+            Get started free
+          </Link>
         </nav>
       </div>
     </header>

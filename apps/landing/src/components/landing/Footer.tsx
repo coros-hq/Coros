@@ -19,7 +19,7 @@ function LogoMark() {
       className="shrink-0"
       aria-hidden
     >
-      <rect width="48" height="48" rx="10" fill="#7c3aed" />
+      <rect width="48" height="48" rx="10" fill="#5B45E0" />
       <path
         d="M31 13 A13 13 0 1 0 31 35"
         stroke="white"
@@ -46,7 +46,10 @@ function FooterColumn({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-medium uppercase tracking-widest text-zinc-400">
+      <p
+        className="text-[11px] font-medium uppercase leading-none text-[var(--text-tertiary)]"
+        style={{ letterSpacing: "0.1em" }}
+      >
         {title}
       </p>
       <ul className="mt-4 space-y-3">{children}</ul>
@@ -70,7 +73,7 @@ function FooterLink({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+          className="text-[13px] leading-[1.6] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
         >
           {children}
         </Link>
@@ -81,7 +84,7 @@ function FooterLink({
     <li>
       <Link
         href={href}
-        className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+        className="text-[13px] leading-[1.6] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
       >
         {children}
       </Link>
@@ -91,8 +94,11 @@ function FooterLink({
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-200/80 bg-background py-16 md:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <footer
+      className="bg-[var(--bg)] py-16 md:py-20"
+      style={{ borderTop: "1px solid var(--border)" }}
+    >
+      <div className="landing-container">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-4 md:gap-12 lg:gap-16">
           <FooterColumn title="Product">
             <FooterLink href={APP_URL} external>
@@ -102,11 +108,15 @@ export function Footer() {
           </FooterColumn>
 
           <FooterColumn title="Features">
-            <FooterLink href="/#feature-people">HR &amp; People</FooterLink>
-            <FooterLink href="/#feature-projects">Projects</FooterLink>
-            <FooterLink href="/#feature-documents">Documents</FooterLink>
-            <FooterLink href="/#feature-documents">Announcements</FooterLink>
-            <FooterLink href="/#feature-people">Leave requests</FooterLink>
+            <FooterLink href="/#feature-leave-calendar">
+              Leave calendar
+            </FooterLink>
+            <FooterLink href="/#feature-org-chart">Org chart</FooterLink>
+            <FooterLink href="/#feature-employee-profiles">
+              Employee profiles
+            </FooterLink>
+            <FooterLink href="/#feature-announcements">Announcements</FooterLink>
+            <FooterLink href="/#feature-tasks-kanban">Tasks &amp; Kanban</FooterLink>
           </FooterColumn>
 
           <FooterColumn title="Company">
@@ -129,14 +139,17 @@ export function Footer() {
           </FooterColumn>
         </div>
 
-        <div className="mt-16 flex flex-col gap-6 border-t border-zinc-200/80 pt-10 md:mt-20 md:flex-row md:items-end md:justify-between">
+        <div
+          className="mt-16 flex flex-col gap-6 pt-10 md:mt-20 md:flex-row md:items-end md:justify-between"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
           <div className="max-w-md space-y-2">
-            <p className="text-sm leading-relaxed text-zinc-600">
+            <p className="text-[13px] leading-[1.6] text-[var(--text-secondary)]">
               Coros — HR, projects and documents for growing teams
             </p>
             <div className="flex items-center gap-2.5">
               <LogoMark />
-              <p className="text-sm text-zinc-500">
+              <p className="text-[13px] leading-[1.6] text-[var(--text-tertiary)]">
                 © 2026 Coros. AGPL licensed.
               </p>
             </div>
