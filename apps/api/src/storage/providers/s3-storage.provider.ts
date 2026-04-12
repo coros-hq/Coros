@@ -27,7 +27,25 @@ export class S3StorageProvider {
         ),
       },
       forcePathStyle: true,
+      // Supabase Storage can return transient errors right after a project wakes from pause.
+      maxAttempts: 6,
     });
+  }
+
+  private isTransientSupabaseStorageError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err);
+    const name =
+      err !== null &&
+      typeof err === 'object' &&
+      'name' in err &&
+      typeof (err as { name: unknown }).name === 'string'
+        ? (err as { name: string }).name
+        : '';
+    return (
+      name === 'DatabaseTimeout' ||
+      message.includes('DatabaseTimeout') ||
+      message.includes('connection to the database')
+    );
   }
 
   async upload(
@@ -40,14 +58,29 @@ export class S3StorageProvider {
     const filename = `${randomUUID()}${ext}`;
     const key = `${folder}/${filename}`;
 
-    await this.s3Client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      })
-    );
+    const putCommand = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    });
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await this.s3Client.send(putCommand);
+        break;
+      } catch (err) {
+        if (
+          !this.isTransientSupabaseStorageError(err) ||
+          attempt === 4
+        ) {
+          throw err;
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.min(1000 * 2 ** attempt, 8000))
+        );
+      }
+    }
 
     const projectUrl = this.endpoint.replace('/storage/v1/s3', '');
     const url = `${projectUrl}/storage/v1/object/public/${this.bucket}/${key}`;
