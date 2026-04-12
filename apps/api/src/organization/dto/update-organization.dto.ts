@@ -8,7 +8,7 @@ export class UpdateOrganizationDto {
 
   @IsOptional()
   @IsString()
-  logo?: string;
+  logoUrl?: string;
 
   @IsOptional()
   @IsUrl()

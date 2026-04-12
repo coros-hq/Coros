@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   Building2,
   CheckCircle2,
   Globe,
   Lock,
   Loader2,
+  Palette,
   Shield,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -118,6 +119,9 @@ function formatDate(d?: string): string {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isSettingsHome =
+    location.pathname === '/settings' || location.pathname === '/settings/';
   const headerPortal = useRef<Element | null>(null);
   const [portalReady, setPortalReady] = useState(false);
 
@@ -342,16 +346,18 @@ export default function SettingsPage() {
 
   return (
     <>
-      {portalReady && headerPortal.current
-        ? createPortal(
-            <div className="flex w-full items-center justify-between">
-              <h1 className="text-lg font-bold text-foreground">Settings</h1>
-            </div>,
-            headerPortal.current
-          )
-        : null}
+      {isSettingsHome ? (
+        <>
+          {portalReady && headerPortal.current
+            ? createPortal(
+                <div className="flex w-full items-center justify-between">
+                  <h1 className="text-lg font-bold text-foreground">Settings</h1>
+                </div>,
+                headerPortal.current
+              )
+            : null}
 
-      <div className="mx-auto w-full px-4 py-4">
+          <div className="mx-auto w-full px-4 py-4">
         <div className="mb-4">
           <h1 className="text-lg font-semibold text-foreground">Settings</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -545,6 +551,7 @@ export default function SettingsPage() {
                 Loading…
               </div>
             ) : orgData ? (
+              <>
               <Card>
                 <CardHeader className="p-4 pb-2 space-y-0.5">
                   <CardTitle className="text-base">Organization</CardTitle>
@@ -709,6 +716,26 @@ export default function SettingsPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {isAdmin ? (
+                <Card className="mt-4">
+                  <CardHeader className="p-4 pb-2 space-y-0.5">
+                    <CardTitle className="text-base">Branding</CardTitle>
+                    <CardDescription className="text-xs">
+                      Logo and colors for your workspace
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/settings/branding">
+                        <Palette className="mr-2 h-4 w-4" />
+                        Edit branding
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+              </>
             ) : null}
           </TabsContent>
 
@@ -799,6 +826,10 @@ export default function SettingsPage() {
           ) : null}
         </Tabs>
       </div>
+        </>
+      ) : (
+        <Outlet />
+      )}
     </>
   );
 }

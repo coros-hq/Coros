@@ -19,6 +19,13 @@ import { DatePicker as ShadcnDatePicker } from '~/components/ui/date-picker';
 import type { ApiEmployee } from '~/services/employee.service';
 import type { ApiDepartment } from '~/services/department.service';
 import type { ApiPosition } from '~/services/position.service';
+import { useAuthStore } from '~/stores/auth.store';
+import {
+  EmployeeUserRole,
+  EmploymentType,
+  EMPLOYEE_USER_ROLE_LABELS,
+  EMPLOYMENT_TYPE_LABELS,
+} from '~/constants/employee';
 
 const createSchema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -31,10 +38,8 @@ const createSchema = z.object({
   departmentId: z.string().min(1, 'Required'),
   positionId: z.string().min(1, 'Required'),
   managerId: z.string().optional(),
-  role: z.enum(['admin', 'manager', 'employee']).optional(),
-  employmentType: z
-    .enum(['full_time', 'part_time', 'contract', 'intern'])
-    .optional(),
+  role: z.nativeEnum(EmployeeUserRole).optional(),
+  employmentType: z.nativeEnum(EmploymentType).optional(),
 });
 
 const updateSchema = createSchema.partial();
@@ -99,8 +104,10 @@ export function EmployeeForm({
         departmentId: employee.department?.id ?? fixedDepartmentId ?? '',
         positionId: employee.position?.id ?? '',
         managerId: employee.managerId ?? '',
-        role: (employee.user?.role as CreateValues['role']) ?? 'employee',
-        employmentType: 'full_time',
+        role:
+          (employee.user?.role as EmployeeUserRole | undefined) ??
+          EmployeeUserRole.Employee,
+        employmentType: EmploymentType.FullTime,
       };
     }
     return {
@@ -114,8 +121,8 @@ export function EmployeeForm({
       departmentId: fixedDepartmentId ?? '',
       positionId: '',
       managerId: '',
-      role: 'employee',
-      employmentType: 'full_time',
+      role: EmployeeUserRole.Employee,
+      employmentType: EmploymentType.FullTime,
     };
   });
 
@@ -189,24 +196,15 @@ export function EmployeeForm({
     }
   }
 
-  const isAdmin = true; // TODO: derive from useAuthStore
-
-  const EMPLOYMENT_LABELS: Record<string, string> = {
-    full_time: 'Full-time',
-    part_time: 'Part-time',
-    contract: 'Contract',
-    intern: 'Intern',
-  };
-  const ROLE_LABELS: Record<string, string> = {
-    super_admin: 'Super admin',
-    admin: 'Admin',
-    manager: 'Manager',
-    employee: 'Employee',
-  };
+  const user = useAuthStore((s) => s.user);
+  const isAdmin =
+    user?.role === EmployeeUserRole.Admin ||
+    user?.role === EmployeeUserRole.SuperAdmin;
 
   const getEmploymentLabel = (value: string) =>
-    EMPLOYMENT_LABELS[value] ?? value;
-  const getRoleLabel = (value: string) => ROLE_LABELS[value] ?? value;
+    EMPLOYMENT_TYPE_LABELS[value as EmploymentType] ?? value;
+  const getRoleLabel = (value: string) =>
+    EMPLOYEE_USER_ROLE_LABELS[value as EmployeeUserRole] ?? value;
 
   return (
     <form
@@ -435,7 +433,7 @@ export function EmployeeForm({
         <div className="space-y-2">
           <Label>Employment type</Label>
           <Select
-            value={values.employmentType ?? 'full_time'}
+            value={values.employmentType ?? EmploymentType.FullTime}
             onValueChange={(v) =>
               set('employmentType', v as CreateValues['employmentType'])
             }
@@ -448,10 +446,13 @@ export function EmployeeForm({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="full_time">Full-time</SelectItem>
-              <SelectItem value="part_time">Part-time</SelectItem>
-              <SelectItem value="contract">Contract</SelectItem>
-              <SelectItem value="intern">Intern</SelectItem>
+              {(
+                Object.values(EmploymentType) as EmploymentType[]
+              ).map((type) => (
+                <SelectItem key={type} value={type}>
+                  {EMPLOYMENT_TYPE_LABELS[type]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -461,19 +462,24 @@ export function EmployeeForm({
       <div className="space-y-2">
         <Label>Role</Label>
         <Select
-          value={values.role ?? 'employee'}
+          value={values.role ?? EmployeeUserRole.Employee}
           onValueChange={(v) => set('role', v as CreateValues['role'])}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select role">
-              {values.role ? getRoleLabel(String(values.role)) : 'Employee'}
+              {values.role
+                ? getRoleLabel(String(values.role))
+                : EMPLOYEE_USER_ROLE_LABELS[EmployeeUserRole.Employee]}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="employee">Employee</SelectItem>
-            <SelectItem value="manager">Manager</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="super_admin">Super admin</SelectItem>
+            {(Object.values(EmployeeUserRole) as EmployeeUserRole[]).map(
+              (r) => (
+                <SelectItem key={r} value={r}>
+                  {EMPLOYEE_USER_ROLE_LABELS[r]}
+                </SelectItem>
+              )
+            )}
           </SelectContent>
         </Select>
         <FieldError message={errors.role} />

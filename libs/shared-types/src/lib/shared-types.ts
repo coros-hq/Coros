@@ -17,6 +17,11 @@ export enum OrganizationSize {
   XL = '500+',
 }
 
+export interface OrganizationBrandingDto {
+  logoUrl?: string;
+  brandColor?: string;
+}
+
 export enum Status {
   ACTIVE = 'active',
   INACTIVE = 'inactive',

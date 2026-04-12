@@ -9,6 +9,8 @@ import {
 
 import './app.css';
 
+import logoUrl from './assets/logo.svg?url';
+
 export const meta: MetaFunction = () => [{ title: 'Coros' }];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -17,7 +19,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="shortcut icon" href="/assets/logo.svg" type="image/x-icon" />
+        <link rel="icon" href={logoUrl} type="image/svg+xml" />
         <Meta />
         <Links />
       </head>

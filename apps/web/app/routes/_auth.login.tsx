@@ -83,11 +83,7 @@ export default function LoginPage() {
           <div className="rounded bg-destructive-muted px-3 py-2.5 text-sm text-destructive">{error}</div>
         ) : null}
 
-        <Button
-          className="h-10 w-full bg-purple font-semibold text-white hover:bg-purple-mid"
-          disabled={loading}
-          type="submit"
-        >
+        <Button className="h-10 w-full font-semibold" disabled={loading} type="submit">
           {loading ? (
             <span className="flex items-center gap-2">
               <Spinner />
@@ -103,7 +99,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-foreground-muted">
           Don&apos;t have an account?{' '}
           <Link
-            className="font-semibold text-purple underline-offset-4 hover:text-purple-mid hover:underline"
+            className="font-semibold text-brand underline-offset-4 hover:underline"
             to="/register"
           >
             Create one

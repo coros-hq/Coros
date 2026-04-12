@@ -22,8 +22,11 @@ export class Organization extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   slug!: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  logo!: string;
+  @Column({ type: 'text', nullable: true })
+  logoUrl!: string | null;
+
+  @Column({ type: 'varchar', length: 7, nullable: true })
+  brandColor!: string | null;
 
   @Column({ type: 'text' })
   website!: string;

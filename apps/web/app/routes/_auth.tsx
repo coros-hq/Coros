@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, redirect } from 'react-router';
 import CorosLogo from '~/assets/logo.svg';
+import { useBranding } from '~/stores/branding.store';
 import { applySessionFromAccessToken, tryRefreshSession } from '~/lib/api';
 import { useAuthStore } from '~/stores/auth.store';
 
@@ -15,9 +16,14 @@ export async function clientLoader() {
 }
 
 export default function AuthLayout() {
+  const { branding } = useBranding();
+  const logoSrc = branding.logoUrl ?? CorosLogo;
+
   useEffect(() => {
     useAuthStore.getState().setLoading(false);
   }, []);
+
+  console.log(branding)
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
@@ -44,15 +50,15 @@ export default function AuthLayout() {
         <div className="relative z-10 flex h-full flex-col justify-between p-10 text-foreground-inverse lg:p-12">
           <div className="space-y-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl ">
-                <img src={CorosLogo} alt="Coros" className="h-10 w-10" />
+              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-primary/15 p-1">
+                <img src={logoSrc} alt="" className="h-full w-full object-contain" />
               </div>
               <span className="text-xl font-semibold tracking-tight">
                 Coros
               </span>
             </div>
             <div className="max-w-md space-y-4">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-purple-bright">
+              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-brand">
                 Open company OS
               </p>
               <h1 className="text-4xl font-semibold leading-tight tracking-tight text-foreground-inverse">
@@ -88,7 +94,9 @@ export default function AuthLayout() {
 
       <div className="flex flex-1 flex-col bg-canvas">
         <div className="flex items-center gap-3 border-b border-canvas-border px-6 py-4 lg:hidden">
-          <img src={CorosLogo} alt="Coros" className="h-6 w-6" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/15">
+            <img src={logoSrc} alt="" className="h-full w-full object-contain p-0.5" />
+          </div>
           <span className="text-lg font-semibold tracking-tight text-foreground">
             Coros
           </span>

@@ -28,6 +28,7 @@ Self-host it on your own infrastructure, or use the cloud-hosted version — sam
 - 📈 **Reports & Insights** — dashboard metrics and visual summaries
 - 🔐 **Role-based Access Control** — Admin, Manager, Employee
 - 🏢 **Multi-tenant** — manage multiple organizations
+- 🎨 **Organization branding** — upload a logo and set a primary brand color; admins configure it under **Settings → Branding**; the color drives app-wide theme tokens (sidebar, navigation accents, buttons, and the auth experience) so each org can look like its own product
 - 🐳 **Self-host in minutes** — single Docker Compose command
 
 ---
@@ -101,9 +102,10 @@ coros/
 - [x] Document management
 - [x] Projects and Tasks
 - [x] Dashboard and notifications
-- [ ] Reporting and analytics expansion
-- [ ] Production Docker setup
-- [ ] Landing page and public launch
+- [x] Organization branding (logo + brand color, admin settings, themed shell)
+- [x] Reporting and analytics expansion
+- [x] Production Docker setup
+- [x] Landing page and public launch
 
 ---
 

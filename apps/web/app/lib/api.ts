@@ -65,6 +65,12 @@ export async function tryRefreshSession(): Promise<{
   }
 }
 
+/** Unauthenticated GET (e.g. public organization branding). Uses same unwrap as authenticated client. */
+export async function getPublic<T>(path: string): Promise<T> {
+  const res = await bareClient.get<unknown>(path);
+  return unwrapApiResponse(res.data) as T;
+}
+
 function normalizeAxiosError(error: AxiosError): unknown {
   const data = error.response?.data;
   if (data !== null && typeof data === 'object') return data;
@@ -99,6 +105,15 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  /** Default `Content-Type: application/json` breaks `FormData` — runtime must set multipart + boundary. */
+  if (config.data instanceof FormData && config.headers) {
+    const h = config.headers;
+    if (typeof h.delete === 'function') {
+      h.delete('Content-Type');
+    } else {
+      delete (h as Record<string, unknown>)['Content-Type'];
+    }
+  }
   const { accessToken } = useAuthStore.getState();
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;

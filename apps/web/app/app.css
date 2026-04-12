@@ -13,6 +13,8 @@
   :root {
     /* App shell (lavender); use var() in @layer base because @apply bg-shell can fail if Tailwind config isn’t resolved */
     --shell: #f5f3ff;
+    /* RGB channels for Tailwind `brand` + opacity (default indigo #4F46E5) */
+    --brand: 79 70 229;
     --background: 0 0% 100%;
     --foreground: 259 73% 15%;
     --card: 0 0% 100%;

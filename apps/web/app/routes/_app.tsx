@@ -12,6 +12,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import CorosLogo from '~/assets/logo.svg';
+import { cn } from '~/lib/utils';
 
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
@@ -33,8 +34,10 @@ import { GlobalSearch } from '~/components/search/GlobalSearch';
 import { NotificationBell } from '~/components/notifications/NotificationBell';
 import { SidebarDepartmentsSection } from '~/components/layout/SidebarDepartmentsSection';
 import { authService } from '~/services/auth.service';
+import { getOrganizationBranding } from '~/services/organization.service';
 import { setupService } from '~/services/setup.service';
 import { useAuthStore } from '~/stores/auth.store';
+import { useBranding, useBrandingStore } from '~/stores/branding.store';
 import { ROLES_MANAGEMENT } from '~/lib/nav-roles';
 import type { LucideIcon } from 'lucide-react';
 
@@ -71,6 +74,19 @@ export async function clientLoader() {
     throw redirect('/setup');
   }
 
+  const { user, accessToken } = useAuthStore.getState();
+  if (user?.organizationId && accessToken) {
+    try {
+      const branding = await getOrganizationBranding(user.organizationId);
+      useBrandingStore.getState().hydrate(branding);
+    } catch {
+      useBrandingStore.getState().reset();
+    }
+  } else {
+    useBrandingStore.getState().reset();
+  }
+  
+  console.log(useBrandingStore.getState())
   setLoading(false);
   return null;
 }
@@ -136,6 +152,8 @@ export default function AppLayout() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const navigate = useNavigate();
   const location = useLocation();
+  const { branding } = useBranding();
+  const logoSrc = branding.logoUrl ?? CorosLogo;
 
   async function handleLogout() {
     try {
@@ -155,8 +173,8 @@ export default function AppLayout() {
       <Sidebar collapsible="icon" className="h-full">
         <SidebarHeader>
           <div className="flex items-center gap-2.5 px-2 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <img src={CorosLogo} alt="Coros" className="h-8 w-8" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
+              <img src={logoSrc} alt="" className="h-full w-full object-contain p-0.5" />
             </div>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="text-sm font-semibold leading-none tracking-tight text-sidebar-foreground">
@@ -191,7 +209,11 @@ export default function AppLayout() {
                     return (
                       <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton
-                          className="w-60"
+                          className={cn(
+                            'w-60',
+                            isActive &&
+                              'data-[active=true]:bg-brand/10 data-[active=true]:text-brand data-[active=true]:font-medium'
+                          )}
                           isActive={isActive}
                           asChild
                           tooltip={item.label}

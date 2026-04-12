@@ -120,7 +120,8 @@ export class AuthService {
     const organization = this.organizationRepository.create({
       name: registerDto.organizationName,
       slug,
-      logo: '',
+      logoUrl: null,
+      brandColor: null,
       website: '',
       size: registerDto.size || OrganizationSize.XS,
       isActive: true,

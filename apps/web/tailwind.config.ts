@@ -16,6 +16,7 @@ export default {
   			]
   		},
   		colors: {
+  			brand: 'rgb(var(--brand) / <alpha-value>)',
   			shell: '#F5F3FF',
   			surface: {
   				DEFAULT: '#ffffff',
