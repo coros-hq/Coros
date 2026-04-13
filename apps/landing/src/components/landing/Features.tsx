@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -94,58 +96,29 @@ const featureBlocks: FeatureBlock[] = [
   },
 ];
 
-function FeatureCopy({
-  block,
-  isReverse,
-}: {
-  block: FeatureBlock;
-  isReverse: boolean;
-}) {
+function FeatureCopy({ block }: { block: FeatureBlock }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col justify-center",
-        isReverse
-          ? "py-[96px] pl-[72px] border-l border-[var(--border)]"
-          : "py-[96px] pr-[72px] border-r border-[var(--border)]"
-      )}
-    >
-      <span
-        className="mb-10 block text-[11px] font-medium text-[var(--text-tertiary)]"
-        style={{ letterSpacing: "0.06em" }}
-      >
+    <div className="flex flex-col justify-center py-20">
+      <span className="block font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-400">
         {block.number}
       </span>
-      <h3
-        className="mb-2.5 font-semibold text-[var(--text-primary)]"
-        style={{
-          fontSize: "28px",
-          letterSpacing: "-0.025em",
-          lineHeight: 1.2,
-        }}
-      >
+      <h3 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-900">
         {block.headline}
       </h3>
-      <p
-        className="text-[15px] leading-[1.6] text-[var(--text-secondary)]"
-        style={{ marginBottom: "28px" }}
-      >
+      <p className="mt-4 text-[15px] leading-relaxed text-zinc-500">
         {block.subtitle}
       </p>
-      <div>
+      <ul className="mt-4 space-y-3">
         {block.lines.map((line, i) => (
-          <p
-            key={i}
-            className="text-[14px] text-[var(--text-tertiary)]"
-            style={{ lineHeight: 2.0 }}
-          >
-            {line}
-          </p>
+          <li key={i} className="flex items-start gap-2.5">
+            <span className="mt-0.5 shrink-0 text-violet-500">→</span>
+            <span className="text-sm leading-relaxed text-zinc-500">{line}</span>
+          </li>
         ))}
-      </div>
+      </ul>
       <Link
         href={`#${block.id}`}
-        className="mt-8 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] opacity-90 transition-opacity hover:opacity-100"
+        className="mt-8 inline-flex w-fit text-sm font-medium text-violet-600 transition-colors hover:text-violet-700"
       >
         Learn more →
       </Link>
@@ -155,40 +128,66 @@ function FeatureCopy({
 
 function FeatureImage({
   block,
-  isReverse,
   priority,
 }: {
   block: FeatureBlock;
-  isReverse: boolean;
   priority?: boolean;
 }) {
+  // Image on the left (reverse) tilts right toward center; image on right tilts left
+  const defaultTransform = block.reverse
+    ? "perspective(1000px) rotateY(8deg) rotateX(3deg) scale(1.02)"
+    : "perspective(1000px) rotateY(-8deg) rotateX(3deg) scale(1.02)";
+  const hoverTransform = block.reverse
+    ? "perspective(1000px) rotateY(3deg) rotateX(1deg) scale(1.04)"
+    : "perspective(1000px) rotateY(-3deg) rotateX(1deg) scale(1.04)";
+
   return (
-    <div
-      className={cn(
-        "overflow-hidden flex items-start",
-        isReverse ? "justify-end pt-[32px] pr-[32px] pb-0" : "justify-start pt-[32px] pl-[32px] pb-0"
-      )}
-    >
-      <Image
-        src={block.imageSrc}
-        alt={block.imageAlt}
-        width={1200}
-        height={780}
-        sizes="(min-width: 1024px) 50vw, 100vw"
-        unoptimized
-        priority={priority}
-        className={cn(
-          "feature-img w-full h-auto",
-          isReverse ? "rounded-tr-[8px]" : "rounded-tl-[8px]"
-        )}
+    <div className="relative flex items-center justify-center p-8 py-20">
+      {/* Soft radial glow behind the card */}
+      <div
+        className="absolute inset-0 rounded-2xl"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.07) 0%, transparent 70%)",
+        }}
       />
+
+      {/* 3D card */}
+      <div
+        className="relative w-full overflow-hidden rounded-xl border border-zinc-200 shadow-2xl shadow-zinc-300/50"
+        style={{
+          transform: defaultTransform,
+          transformStyle: "preserve-3d",
+          transition: "transform 0.4s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = hoverTransform;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = defaultTransform;
+        }}
+      >
+        <Image
+          src={block.imageSrc}
+          alt={block.imageAlt}
+          width={1200}
+          height={780}
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          unoptimized
+          priority={priority}
+          className="h-auto w-full object-cover object-top"
+        />
+      </div>
     </div>
   );
 }
 
 export function Features() {
   return (
-    <section id="features" className="bg-[var(--bg)]" style={{ borderTop: "1px solid var(--border)" }}>
+    <section
+      id="features"
+      className="border-t border-zinc-100 bg-linear-to-br from-zinc-50 to-white"
+    >
       {/* Section intro */}
       <div
         className="landing-container"
@@ -198,14 +197,11 @@ export function Features() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <p
-          className="text-[11px] font-medium uppercase text-[var(--text-tertiary)]"
-          style={{ letterSpacing: "0.1em" }}
-        >
+        <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">
           Features
         </p>
         <h2
-          className="mt-3 font-semibold text-[var(--text-primary)]"
+          className="mt-3 font-semibold text-zinc-900"
           style={{
             fontSize: "clamp(32px, 4vw, 48px)",
             letterSpacing: "-0.03em",
@@ -220,51 +216,31 @@ export function Features() {
       </div>
 
       {/* Feature rows */}
-      <div className="flex flex-col gap-6 py-6">
-      {featureBlocks.map((block, index) => (
-        <div
-          key={block.id}
-          id={block.id}
-          className="bg-[var(--bg)]"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          <div className="landing-container">
-            {/* Mobile: stacked. Desktop: proportional grid */}
-            <div
-              className={cn(
-                "grid grid-cols-1",
-                block.reverse
-                  ? "lg:grid-cols-[3fr_2fr]"
-                  : "lg:grid-cols-[2fr_3fr]"
-              )}
-            >
-              {/* Copy column — always renders second in DOM for alternating */}
+      <div>
+        {featureBlocks.map((block, index) => (
+          <div key={block.id} id={block.id} className="border-t border-zinc-100">
+            <div className="mx-auto max-w-6xl px-6">
               <div
                 className={cn(
-                  "px-[48px] py-[48px] lg:px-0 lg:py-0",
-                  block.reverse ? "lg:order-2" : "lg:order-1"
+                  "grid grid-cols-1 items-center gap-8 lg:gap-12",
+                  block.reverse
+                    ? "lg:grid-cols-[1.4fr_1fr]"
+                    : "lg:grid-cols-[1fr_1.4fr]"
                 )}
               >
-                <FeatureCopy block={block} isReverse={block.reverse} />
-              </div>
+                {/* Copy column */}
+                <div className={cn(block.reverse ? "lg:order-2" : "lg:order-1")}>
+                  <FeatureCopy block={block} />
+                </div>
 
-              {/* Image column */}
-              <div
-                className={cn(
-                  "min-h-[280px] lg:min-h-0",
-                  block.reverse ? "lg:order-1" : "lg:order-2"
-                )}
-              >
-                <FeatureImage
-                  block={block}
-                  isReverse={block.reverse}
-                  priority={index === 0}
-                />
+                {/* Image column */}
+                <div className={cn(block.reverse ? "lg:order-1" : "lg:order-2")}>
+                  <FeatureImage block={block} priority={index === 0} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
       </div>
     </section>
   );

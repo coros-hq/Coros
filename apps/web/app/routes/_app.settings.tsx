@@ -211,7 +211,7 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    const cancelled = false;
     setOrgLoading(true);
     setOrgError(null);
     Promise.all([getOrganizationMe(), industryService.list()])
