@@ -138,20 +138,6 @@ coros/
 
 > Vote on features or suggest new ones in [GitHub Discussions](https://github.com/coros-hq/coros/discussions).
 
----
-
-## Contributing
-
-Coros is built in public and contributions are very welcome — whether it's a bug fix, a new feature, or just feedback.
-
-1. Read [CONTRIBUTING.md](CONTRIBUTING.md) first
-2. Browse `[good first issue](https://github.com/coros-hq/coros/labels/good%20first%20issue)` for a starting point
-3. Fork → branch → PR
-
-Not ready to code? Opening issues, improving docs, and sharing Coros with others all make a real difference.
-
----
-
 ## Self-hosting vs Cloud
 
 
