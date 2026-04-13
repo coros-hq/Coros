@@ -11,13 +11,9 @@ HR · Employees · Documents · Projects — in one unified platform.
 [Stack]()
 [PRs Welcome](CONTRIBUTING.md)
 
-**[Live Demo](#)** · **[Documentation](#)** · **[Discord](#)** · **[Report a Bug](https://github.com/coros-hq/coros/issues)**
+**[Live Demo](https://app.coros.click)** · **[Documentation](https://coros.click)** · **[Discord](https://discord.gg/Z5MrUb35)** · **[Report a Bug](https://github.com/coros-hq/coros/issues)**
 
-
-
-Coros Dashboard
-
-
+<img width="2096" height="1178" alt="coros-dashboard" src="https://github.com/user-attachments/assets/35762c81-99c9-405a-a286-a2d9fb7b5b6a" />
 
 ---
 
