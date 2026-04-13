@@ -1,81 +1,99 @@
+
+
 # Coros
 
-> The open-source company OS — HR, employees, documents and projects in one place.
+### The open-source company OS
 
-![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
-![Status](https://img.shields.io/badge/status-active%20development-orange)
-![Stack](https://img.shields.io/badge/stack-React%20%2B%20NestJS%20%2B%20PostgreSQL-informational)
+HR · Employees · Documents · Projects — in one unified platform.
+
+[License](LICENSE)
+[Status]()
+[Stack]()
+[PRs Welcome](CONTRIBUTING.md)
+
+**[Live Demo](#)** · **[Documentation](#)** · **[Discord](#)** · **[Report a Bug](https://github.com/coros-hq/coros/issues)**
+
+
+
+Coros Dashboard
+
+
 
 ---
 
-## What is Coros?
+## Why Coros?
 
-Coros is an open-source company operating system built for small and medium businesses. Instead of juggling multiple disconnected tools, Coros brings HR, employee management, documents, projects and tasks into a single unified platform.
+Most small businesses run on 4–6 disconnected SaaS tools — one for HR, one for docs, one for projects. Each costs money per seat, stores data somewhere you don't control, and talks to nothing else.
 
-Self-host it on your own infrastructure, or use the cloud-hosted version — same product, your choice.
+Coros replaces that stack with a single platform you own and self-host. One login. One source of truth. No per-seat pricing.
 
 ---
 
 ## Features
 
-- 👥 **HR Management** — departments, positions, leave requests
-- 🧑‍💼 **Employee Profiles** — contracts, status, history
-- 📁 **Document Management** — upload, assign, organize
+- 👥 **HR Management** — departments, positions, leave requests and approvals
+- 🧑‍💼 **Employee Profiles** — contracts, status, full history
+- 📁 **Document Management** — upload, assign to employees or projects
 - 📋 **Projects & Tasks** — kanban board, assignments, priorities
-- 📢 **Announcements** — organization-wide updates and reads
+- 📢 **Announcements** — organization-wide updates with read tracking
 - 🔔 **Notifications** — in-app notification center and activity feed
-- 🔎 **Global Search** — cross-module search for fast navigation
+- 🔎 **Global Search** — cross-module search across all your data
 - 📈 **Reports & Insights** — dashboard metrics and visual summaries
-- 🔐 **Role-based Access Control** — Admin, Manager, Employee
-- 🏢 **Multi-tenant** — manage multiple organizations
-- 🎨 **Organization branding** — upload a logo and set a primary brand color; admins configure it under **Settings → Branding**; the color drives app-wide theme tokens (sidebar, navigation accents, buttons, and the auth experience) so each org can look like its own product
+- 🔐 **Role-based Access** — Admin, Manager, Employee out of the box
+- 🏢 **Multi-tenant** — manage multiple organizations from one instance
+- 🎨 **Organization Branding** — custom logo and brand color, themed across the entire app
 - 🐳 **Self-host in minutes** — single Docker Compose command
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React Router v7 + shadcn/ui + Tailwind CSS |
-| Backend | NestJS + TypeORM |
-| Database | PostgreSQL |
-| Monorepo | NX Workspace + pnpm |
-| Auth | JWT + Refresh Tokens |
-| Storage | Local (dev) → S3/Cloudflare R2 (prod) |
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 20+
-- pnpm
-- Docker + Docker Compose
-
-### Self-host with Docker
+### Option 1 — Docker (Recommended)
 
 ```bash
-# Clone the repository
 git clone https://github.com/coros-hq/coros.git
 cd coros
 
-# Start backend stack (api + postgres + redis)
-docker compose -f apps/api/docker-compose.yml up -d --build
-
-# Install dependencies
-pnpm install
-
-# Set up environment variables
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 
-# Run web app locally (optional when API runs in Docker)
+docker compose -f apps/api/docker-compose.yml up -d --build
+```
+
+Visit `http://localhost:5173` — that's it.
+
+### Option 2 — Local Development
+
+```bash
+git clone https://github.com/coros-hq/coros.git
+cd coros
+
+pnpm install
+
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+
+# Start DB + API in Docker, frontend locally
+docker compose -f apps/api/docker-compose.yml up -d
 pnpm nx run @org/web:dev:development
 ```
 
-Visit `http://localhost:5173` for the web app and `http://localhost:3000/v1/api` for the API.
+> **Requirements:** Node.js 20+, pnpm, Docker + Docker Compose
+
+---
+
+## Tech Stack
+
+
+| Layer    | Technology                                 |
+| -------- | ------------------------------------------ |
+| Frontend | React Router v7 + shadcn/ui + Tailwind CSS |
+| Backend  | NestJS + TypeORM                           |
+| Database | PostgreSQL                                 |
+| Monorepo | NX Workspace + pnpm                        |
+| Auth     | JWT + Refresh Tokens + RBAC                |
+| Storage  | Local (dev) → S3 (prod)                    |
+
 
 ---
 
@@ -96,45 +114,74 @@ coros/
 
 ## Roadmap
 
-- [x] Project setup and architecture
-- [x] Auth system (JWT + RBAC)
-- [x] HR and Employee management
-- [x] Document management
-- [x] Projects and Tasks
-- [x] Dashboard and notifications
-- [x] Organization branding (logo + brand color, admin settings, themed shell)
-- [x] Reporting and analytics expansion
-- [x] Production Docker setup
-- [x] Landing page and public launch
+### v1 — Shipped ✅
+
+- Auth system (JWT + RBAC)
+- HR and Employee management
+- Document management
+- Projects and Tasks with kanban
+- Dashboard, notifications, global search
+- Organization branding
+- Reporting and analytics
+- Production Docker setup
+
+### v2 — In Progress 🚧
+
+- Time tracking
+- Payroll basics
+- Public API + webhooks
+- Email notifications
+- Mobile-responsive polish
+- Audit log
+
+### Future
+
+- SSO / SAML
+- Zapier / n8n integration
+- Marketplace for modules
+
+> Vote on features or suggest new ones in [GitHub Discussions](https://github.com/coros-hq/coros/discussions).
 
 ---
 
 ## Contributing
 
-Coros is built in public and contributions are welcome. The project is in active early development — the best way to contribute right now is to try it out, open issues, and share feedback.
+Coros is built in public and contributions are very welcome — whether it's a bug fix, a new feature, or just feedback.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'add your feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) first
+2. Browse `[good first issue](https://github.com/coros-hq/coros/labels/good%20first%20issue)` for a starting point
+3. Fork → branch → PR
+
+Not ready to code? Opening issues, improving docs, and sharing Coros with others all make a real difference.
+
+---
+
+## Self-hosting vs Cloud
+
+
+|                | Self-hosted | Cloud (coming soon) |
+| -------------- | ----------- | ------------------- |
+| Cost           | Free        | Paid                |
+| Data ownership | Yours       | Ours (EU servers)   |
+| Updates        | Manual      | Automatic           |
+| Support        | Community   | Priority            |
+
 
 ---
 
 ## License
 
-Coros is licensed under the [AGPL-3.0 License](LICENSE). You are free to self-host and modify it. If you offer it as a hosted service, you must open source your modifications.
+Licensed under [AGPL-3.0](LICENSE). Free to self-host and modify. If you offer Coros as a hosted service, you must open-source your modifications.
 
 ---
 
-## Stay in the Loop
+## Community
 
-This project is being built in public. Follow the journey:
-
-- 🐦 Twitter/X — [@corosapp](#)
-- ⭐ Star the repo to follow progress
-- 💬 Open an issue to share feedback or ideas
+- 💬 [Discord](#) — chat with the team and community
+- 🐦 [Twitter/X](https://twitter.com/corosapp) — follow for updates
+- 💡 [GitHub Discussions](https://github.com/coros-hq/coros/discussions) — ideas, feedback, questions
+- ⭐ Star the repo if Coros is useful to you — it helps a lot
 
 ---
 
-<p align="center">Built with ❤️ and shipped in public</p>
+Built in public · AGPL-3.0 · Made for SMBs who deserve better tools
