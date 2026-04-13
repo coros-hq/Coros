@@ -6,10 +6,10 @@
 
 HR · Employees · Documents · Projects — in one unified platform.
 
-[License](LICENSE)
-[Status]()
-[Stack]()
-[PRs Welcome](CONTRIBUTING.md)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Status](https://img.shields.io/badge/status-v1%20stable-brightgreen)]()
+[![Stack](https://img.shields.io/badge/stack-React%20%2B%20NestJS%20%2B%20PostgreSQL-informational)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
 **[Live Demo](https://app.coros.click)** · **[Documentation](https://coros.click)** · **[Discord](https://discord.gg/Z5MrUb35)** · **[Report a Bug](https://github.com/coros-hq/coros/issues)**
 
