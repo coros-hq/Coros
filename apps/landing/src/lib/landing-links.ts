@@ -1,5 +1,6 @@
 export const REGISTER_URL = "https://app.coros.click/register";
 export const GITHUB_URL = "https://github.com/oussamachah2020/Coros";
+export const DISCORD_URL = "https://discord.gg/Z5MrUb35";
 export const APP_URL = "https://app.coros.click";
 export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
 export const SELF_HOST_GUIDE_URL = `${GITHUB_URL}#self-hosting`;

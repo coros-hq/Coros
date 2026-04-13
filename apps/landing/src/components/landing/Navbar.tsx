@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Github, Menu, X } from "lucide-react";
-import { GITHUB_URL, REGISTER_URL } from "@/lib/landing-links";
+import { DISCORD_URL, GITHUB_URL, REGISTER_URL } from "@/lib/landing-links";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/landing/ThemeToggle";
+import DiscordIcon from "@/../public/assets/discord-icon.svg";
+import Image from "next/image";
 
 function LogoMark() {
   return (
@@ -102,12 +104,16 @@ export function Navbar() {
             <Github className="size-4" aria-hidden />
           </Link>
           <Link
-            href={REGISTER_URL}
-            className="inline-flex items-center rounded-[8px] bg-[#5b45e0] text-[13px] font-medium text-white transition-colors hover:bg-[#4936c2]"
-            style={{ padding: "7px 16px" }}
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex size-8 items-center justify-center rounded-md transition-colors hover:bg-[var(--bg-secondary)]"
+            style={{ color: "var(--text-secondary)" }}
+            aria-label="Coros on Discord"
           >
-            Get started free
+            <Image src={DiscordIcon} alt="Discord" className="size-5" />
           </Link>
+          
         </div>
 
         <div className="relative z-10 flex items-center gap-1 md:hidden">
