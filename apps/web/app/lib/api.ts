@@ -23,6 +23,10 @@ function resolveApiBase(): string {
       /* ignore */
     }
   }
+  /**
+   * Dev fallback when no API origin is configured.
+   * Uses the Vite proxy (`/api/v1` -> backend `/v1/api`).
+   */
   if (import.meta.env.DEV) return '/api/v1';
   return '';
 }

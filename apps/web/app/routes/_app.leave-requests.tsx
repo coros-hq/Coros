@@ -595,18 +595,7 @@ export default function LeaveRequestsPage() {
           </div>
         ) : null}
 
-        {!isLoading && filteredRows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-medium text-foreground">
-              No leave requests yet
-            </p>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Submit your first leave request
-            </p>
-            <Button onClick={() => setSheetOpen(true)}>+ Request leave</Button>
-          </div>
-        ) : viewMode === 'calendar' ? (
+        {viewMode === 'calendar' ? (
           <div className="-mx-6 rounded-xl bg-zinc-50/90 px-6 py-6 ring-1 ring-zinc-200/60">
             {!isLoading && balances.length > 0 ? (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -692,6 +681,17 @@ export default function LeaveRequestsPage() {
                 isAdmin={isAdmin}
               />
             </div>
+          </div>
+        ) : !isLoading && filteredRows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">
+              No leave requests yet
+            </p>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Submit your first leave request
+            </p>
+            <Button onClick={() => setSheetOpen(true)}>+ Request leave</Button>
           </div>
         ) : (
           <>
