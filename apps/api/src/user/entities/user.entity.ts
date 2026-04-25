@@ -20,7 +20,7 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: Role })
   role!: Role;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, select: false })
   password!: string;
 
   @Column({ type: 'boolean' })

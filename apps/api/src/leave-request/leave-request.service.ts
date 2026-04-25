@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,9 +14,12 @@ import { NewLeaveRequestDto } from './dto/new-leave-request.dto';
 import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
 import { LeaveRequestStatus, NotificationType, Role } from '@org/shared-types';
 import { NotificationService } from '../notification/notification.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class LeaveRequestService {
+  private readonly logger = new Logger(LeaveRequestService.name);
+
   constructor(
     @InjectRepository(LeaveRequest)
     private readonly leaveRequestRepository: Repository<LeaveRequest>,
@@ -24,7 +28,94 @@ export class LeaveRequestService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
   ) {}
+
+  private formatLeaveDate(value: Date | string): string {
+    const d = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(d.getTime()) ? String(value) : d.toDateString();
+  }
+
+  private assertValidDateRange(startDate: Date, endDate: Date): void {
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException('Invalid leave request dates');
+    }
+    if (endDate < startDate) {
+      throw new BadRequestException(
+        'End date must be on or after start date',
+      );
+    }
+  }
+
+  /** Loads only non-sensitive user columns for transactional email. */
+  private async resolveLeaveRecipient(
+    userId: string,
+    employeeFirstName: string,
+  ): Promise<{ email: string; firstName: string } | null> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'firstName'],
+    });
+    if (!user) {
+      return null;
+    }
+    const email = user.email?.trim();
+    if (!email) {
+      return null;
+    }
+    return {
+      email,
+      firstName: (employeeFirstName || user.firstName || 'there').trim(),
+    };
+  }
+
+  private async loadEmployeeNotifyTarget(employeeId: string): Promise<{
+    userId: string;
+    organizationId: string;
+    firstName: string;
+  } | null> {
+    const emp = await this.employeeRepository.findOne({
+      where: { id: employeeId },
+      select: ['userId', 'organizationId', 'firstName'],
+    });
+    if (!emp?.userId) {
+      return null;
+    }
+    return {
+      userId: emp.userId,
+      organizationId: emp.organizationId,
+      firstName: emp.firstName ?? '',
+    };
+  }
+
+  /** Attach `{ email }` only — never load full `User` on `employee` (avoids password in API payloads). */
+  private async attachEmployeeUserEmailOnly(
+    requests: LeaveRequest[],
+  ): Promise<void> {
+    const userIds = [
+      ...new Set(
+        requests
+          .map((r) => r.employee?.userId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (userIds.length === 0) {
+      return;
+    }
+    const users = await this.userRepository.find({
+      where: { id: In(userIds) },
+      select: ['id', 'email'],
+    });
+    const emailByUserId = new Map(users.map((u) => [u.id, u.email]));
+    for (const r of requests) {
+      const uid = r.employee?.userId;
+      if (!r.employee || !uid) continue;
+      const email = emailByUserId.get(uid)?.trim();
+      Object.assign(r.employee, {
+        user: email ? { email } : undefined,
+      });
+    }
+  }
 
   async findAllForUser(
     userId: string,
@@ -37,16 +128,20 @@ export class LeaveRequestService {
       role === Role.MANAGER;
 
     if (isAdminOrManager) {
-      return this.leaveRequestRepository.find({
+      const rows = await this.leaveRequestRepository.find({
         where: { employee: { organizationId } },
-        relations: ['employee', 'employee.user', 'approvedBy'],
+        relations: ['employee', 'approvedBy'],
       });
+      await this.attachEmployeeUserEmailOnly(rows);
+      return rows;
     }
 
-    return this.leaveRequestRepository.find({
+    const rows = await this.leaveRequestRepository.find({
       where: { employee: { userId, organizationId } },
-      relations: ['employee', 'employee.user', 'approvedBy'],
+      relations: ['employee', 'approvedBy'],
     });
+    await this.attachEmployeeUserEmailOnly(rows);
+    return rows;
   }
 
   async cancel(id: string, userId: string, organizationId: string): Promise<LeaveRequest> {
@@ -86,10 +181,14 @@ export class LeaveRequestService {
       role === Role.ADMIN ||
       role === Role.MANAGER;
 
+    const startDate = new Date(dto.startDate);
+    const endDate = new Date(dto.endDate);
+    this.assertValidDateRange(startDate, endDate);
+
     const request = this.leaveRequestRepository.create({
       ...rest,
-      startDate: new Date(dto.startDate),
-      endDate: new Date(dto.endDate),
+      startDate,
+      endDate,
       employee: { id: employeeId },
       status: isAdminOrManager ? LeaveRequestStatus.APPROVED : LeaveRequestStatus.PENDING,
       approvedById: isAdminOrManager ? userId : null,
@@ -155,28 +254,81 @@ export class LeaveRequestService {
   async approve(id: string, approvedById: string): Promise<LeaveRequest> {
     const request = await this.leaveRequestRepository.findOne({
       where: { id },
-      relations: ['employee', 'employee.user', 'approvedBy'],
+      relations: ['employee', 'approvedBy'],
     });
     if (!request) {
       throw new NotFoundException('Leave request not found');
     }
+    const notifyFromLoaded =
+      request.employee?.userId && request.employee.organizationId
+        ? {
+            userId: request.employee.userId,
+            organizationId: request.employee.organizationId,
+            firstName: request.employee.firstName ?? '',
+          }
+        : null;
+
     request.status = LeaveRequestStatus.APPROVED;
     request.approvedById = approvedById;
     const saved = await this.leaveRequestRepository.save(request);
 
+    // `save()` can drop populated relations on `request`; do not rely on `request.employee` after this point.
+    const notify =
+      notifyFromLoaded ??
+      (await this.loadEmployeeNotifyTarget(request.employeeId));
+
+    if (!notify) {
+      this.logger.warn(
+        `Leave approved: missing employee notify target for request ${id} (employeeId ${request.employeeId})`,
+      );
+      return saved;
+    }
+
     try {
-      if (request.employee?.userId) {
-        await this.notificationService.create({
-          userId: request.employee.userId,
-          organizationId: request.employee.organizationId,
-          type: NotificationType.LEAVE_REQUEST_APPROVED,
-          title: 'Leave request approved',
-          message: `Your ${request.type} leave request has been approved`,
-          link: '/leave-requests',
-        });
+      await this.notificationService.create({
+        userId: notify.userId,
+        organizationId: notify.organizationId,
+        type: NotificationType.LEAVE_REQUEST_APPROVED,
+        title: 'Leave request approved',
+        message: `Your ${request.type} leave request has been approved`,
+        link: '/leave-requests',
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Leave approved notification failed for user ${notify.userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    try {
+      console.log(`Attempting leave email for userId: ${notify.userId}`);
+      
+      const recipient = await this.resolveLeaveRecipient(
+        notify.userId,
+        notify.firstName,
+      );
+      
+      console.log(`Recipient resolved: ${JSON.stringify(recipient)}`);
+      
+      if (!recipient) {
+        this.logger.warn(
+          `Leave approved email skipped: no email for user ${notify.userId}`,
+        );
+      } else {
+        await this.emailService.sendLeaveStatusUpdate(
+          recipient.email,
+          recipient.firstName || 'there',
+          request.type,
+          this.formatLeaveDate(request.startDate),
+          this.formatLeaveDate(request.endDate),
+          'approved',
+        );
+        console.log(`Leave approved email sent to ${recipient.email}`);
       }
-    } catch {
-      // Notification failures must not break the main operation
+    } catch (err) {
+      console.error(
+        `Leave approved email failed for user ${notify.userId}: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined,
+      );
     }
 
     return saved;
@@ -185,28 +337,75 @@ export class LeaveRequestService {
   async reject(id: string, approvedById: string): Promise<LeaveRequest> {
     const request = await this.leaveRequestRepository.findOne({
       where: { id },
-      relations: ['employee', 'employee.user', 'approvedBy'],
+      relations: ['employee', 'approvedBy'],
     });
     if (!request) {
       throw new NotFoundException('Leave request not found');
     }
+    const notifyFromLoaded =
+      request.employee?.userId && request.employee.organizationId
+        ? {
+            userId: request.employee.userId,
+            organizationId: request.employee.organizationId,
+            firstName: request.employee.firstName ?? '',
+          }
+        : null;
+
     request.status = LeaveRequestStatus.REJECTED;
     request.approvedById = approvedById;
     const saved = await this.leaveRequestRepository.save(request);
 
+    const notify =
+      notifyFromLoaded ??
+      (await this.loadEmployeeNotifyTarget(request.employeeId));
+
+    if (!notify) {
+      this.logger.warn(
+        `Leave rejected: missing employee notify target for request ${id} (employeeId ${request.employeeId})`,
+      );
+      return saved;
+    }
+
     try {
-      if (request.employee?.userId) {
-        await this.notificationService.create({
-          userId: request.employee.userId,
-          organizationId: request.employee.organizationId,
-          type: NotificationType.LEAVE_REQUEST_REJECTED,
-          title: 'Leave request rejected',
-          message: `Your ${request.type} leave request has been rejected`,
-          link: '/leave-requests',
-        });
+      await this.notificationService.create({
+        userId: notify.userId,
+        organizationId: notify.organizationId,
+        type: NotificationType.LEAVE_REQUEST_REJECTED,
+        title: 'Leave request rejected',
+        message: `Your ${request.type} leave request has been rejected`,
+        link: '/leave-requests',
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Leave rejected notification failed for user ${notify.userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    try {
+      const recipient = await this.resolveLeaveRecipient(
+        notify.userId,
+        notify.firstName,
+      );
+      if (!recipient) {
+        this.logger.warn(
+          `Leave rejected email skipped: no email for user ${notify.userId}`,
+        );
+      } else {
+        await this.emailService.sendLeaveStatusUpdate(
+          recipient.email,
+          recipient.firstName || 'there',
+          request.type,
+          this.formatLeaveDate(request.startDate),
+          this.formatLeaveDate(request.endDate),
+          'rejected',
+          request.reason ?? undefined,
+        );
       }
-    } catch {
-      // Notification failures must not break the main operation
+    } catch (err) {
+      this.logger.error(
+        `Leave rejected email failed for user ${notify.userId}: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined,
+      );
     }
 
     return saved;
@@ -223,9 +422,15 @@ export class LeaveRequestService {
     if (!request) {
       throw new NotFoundException('Leave request not found');
     }
+    const nextStartDate =
+      dto.startDate != null ? new Date(dto.startDate) : request.startDate;
+    const nextEndDate =
+      dto.endDate != null ? new Date(dto.endDate) : request.endDate;
+    this.assertValidDateRange(nextStartDate, nextEndDate);
+
     if (dto.type != null) request.type = dto.type as LeaveRequest['type'];
-    if (dto.startDate != null) request.startDate = new Date(dto.startDate);
-    if (dto.endDate != null) request.endDate = new Date(dto.endDate);
+    if (dto.startDate != null) request.startDate = nextStartDate;
+    if (dto.endDate != null) request.endDate = nextEndDate;
     if (dto.reason !== undefined) request.reason = dto.reason ?? null;
     if (dto.status != null) request.status = dto.status;
     if (dto.approvedById !== undefined)

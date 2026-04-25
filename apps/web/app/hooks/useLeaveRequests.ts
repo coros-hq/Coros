@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import type { ApiLeaveRequest } from '~/services/leave-request.service';
 import type { ApiLeaveBalance } from '~/services/leave-balance.service';
 import type { ApiMeEmployee } from '~/services/me.service';
@@ -78,40 +79,70 @@ export function useLeaveRequests() {
 
   const create = useCallback(
     async (dto: CreateLeaveRequestDto) => {
-      await createLeaveRequest(dto);
-      await refetch();
+      try {
+        await createLeaveRequest(dto);
+        await refetch();
+        toast.success('Leave request submitted');
+      } catch (e) {
+        toast.error(extractMessage(e));
+        throw e;
+      }
     },
     [refetch]
   );
 
   const approve = useCallback(
     async (id: string) => {
-      await approveLeaveRequest(id);
-      await refetch();
+      try {
+        await approveLeaveRequest(id);
+        await refetch();
+        toast.success('Leave request approved');
+      } catch (e) {
+        toast.error(extractMessage(e));
+        throw e;
+      }
     },
     [refetch]
   );
 
   const reject = useCallback(
     async (id: string) => {
-      await rejectLeaveRequest(id);
-      await refetch();
+      try {
+        await rejectLeaveRequest(id);
+        await refetch();
+        toast.success('Leave request rejected');
+      } catch (e) {
+        toast.error(extractMessage(e));
+        throw e;
+      }
     },
     [refetch]
   );
 
   const cancel = useCallback(
     async (id: string) => {
-      await cancelLeaveRequest(id);
-      await refetch();
+      try {
+        await cancelLeaveRequest(id);
+        await refetch();
+        toast.success('Leave request cancelled');
+      } catch (e) {
+        toast.error(extractMessage(e));
+        throw e;
+      }
     },
     [refetch]
   );
 
   const update = useCallback(
     async (id: string, dto: UpdateLeaveRequestDto) => {
-      await updateLeaveRequest(id, dto);
-      await refetch();
+      try {
+        await updateLeaveRequest(id, dto);
+        await refetch();
+        toast.success('Leave request updated');
+      } catch (e) {
+        toast.error(extractMessage(e));
+        throw e;
+      }
     },
     [refetch]
   );

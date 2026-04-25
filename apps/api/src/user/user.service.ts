@@ -34,7 +34,13 @@ export class UsersService {
     return await this.dataSource.transaction(async (manager) => {
       const userRepo = manager.getRepository(User);
 
-      const user = await userRepo.findOne({ where: { id } });
+      const userQb = userRepo
+        .createQueryBuilder('user')
+        .where('user.id = :id', { id });
+      if (dto.newPassword !== undefined) {
+        userQb.addSelect('user.password');
+      }
+      const user = await userQb.getOne();
       if (!user) {
         throw new NotFoundException('User not found');
       }

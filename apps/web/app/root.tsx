@@ -6,6 +6,7 @@ import {
   ScrollRestoration,
   type MetaFunction,
 } from 'react-router';
+import { Toaster } from 'sonner';
 
 import './app.css';
 
@@ -25,6 +26,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster richColors closeButton position="top-right" />
         <ScrollRestoration />
         <Scripts />
       </body>
