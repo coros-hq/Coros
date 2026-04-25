@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { render } from '@react-email/render';
 import { WelcomeInvite } from './templates/welcome-invite';
 import { ProjectInvite } from './templates/project-invite';
+import { LeaveStatusUpdate } from './templates/leave-status-update';
 
 /** Resend returns `{ data, error }` and does not throw on API failures — must check `error`. */
 function assertResendOk(
@@ -37,7 +38,7 @@ export class EmailService {
     this.resend = new Resend(apiKey);
     this.from =
       this.configService.get<string>('RESEND_FROM') ??
-      'Coros <onboarding@resend.dev>';
+      'Coros <onboarding@coros.click>';
     this.webUrl =
       this.configService.get<string>('COROS_WEB_URL') ?? 'http://localhost:5173';
   }
@@ -76,5 +77,27 @@ export class EmailService {
       html,
     });
     assertResendOk(result, 'sendProjectInvite', this.logger);
+  }
+
+  async sendLeaveStatusUpdate(
+    to: string,
+    firstName: string,
+    leaveType: string,
+    startDate: string,
+    endDate: string,
+    status: 'approved' | 'rejected',
+    reason?: string,
+  ): Promise<void> {
+    const leaveUrl = `${this.webUrl}/leave-requests`;
+    const html = await render(
+      LeaveStatusUpdate({ firstName, leaveType, startDate, endDate, status, reason, leaveUrl })
+    );
+    const result = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject: `Your leave request has been ${status}`,
+      html,
+    });
+    assertResendOk(result, 'sendLeaveStatusUpdate', this.logger);
   }
 }

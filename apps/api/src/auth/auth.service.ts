@@ -37,7 +37,11 @@ export class AuthService {
       throw new BadRequestException('Email is required');
     }
 
-    return this.userRepository.findOne({ where: { email } });
+    return this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .getOne();
   }
 
   async findOrganizationById(organizationId: string) {

@@ -125,6 +125,17 @@ export function LeaveRequestForm({
 
   const resolvedEmployeeId = isAdmin ? selectedEmployeeId : employeeId;
 
+  useEffect(() => {
+    if (!startDate || !endDate) return;
+    if (new Date(endDate) < new Date(startDate)) {
+      setEndDate(undefined);
+      setFieldErrors((prev) => ({
+        ...prev,
+        endDate: 'End date must be on or after start date',
+      }));
+    }
+  }, [startDate, endDate]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFieldErrors({});
