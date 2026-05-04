@@ -1,16 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app/app.module';
 import serverlessExpress from '@vendia/serverless-express';
+import { Handler, Context, Callback } from 'aws-lambda';
 
-let server: any;
+let server: Handler;
 
-export default async function handler(req: any, res: any) {
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.enableCors();
+  await app.init();
+  const expressApp = app.getHttpAdapter().getInstance();
+  return serverlessExpress({ app: expressApp });
+}
+
+export default async function handler(
+  event: any,
+  context: Context,
+  callback: Callback,
+) {
   if (!server) {
-    const app = await NestFactory.create(AppModule);
-    app.enableCors(); // allow your webapp to connect
-    await app.init();
-    const expressApp = app.getHttpAdapter().getInstance();
-    server = serverlessExpress({ app: expressApp });
+    server = await bootstrap();
   }
-  return server(req, res);
+  return server(event, context, callback);
 }
