@@ -4,7 +4,7 @@
   "outputDirectory": ".",
   "functions": {
     "dist/api/index.js": {
-      "runtime": "@vercel/node@5"
+      "runtime": "nodejs20.x"
     }
   },
   "routes": [{ "src": "/(.*)", "dest": "dist/api/index.js" }]
