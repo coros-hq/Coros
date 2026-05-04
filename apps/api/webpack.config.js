@@ -60,6 +60,13 @@ module.exports = {
       outputHashing: 'none',
       generatePackageJson: false,
       sourceMap: true,
+      additionalEntryPoints: [   // ← add this
+        {
+          entryName: 'api/index',
+          entryPath: './api/index.ts',
+        },
+      ],
     }),
+    
   ],
 };

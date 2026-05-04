@@ -1,5 +1,6 @@
 {
   "version": 2,
-  "builds": [{ "src": "api/index.js", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "api/index.js" }]
+  "buildCommand": "pnpm run vercel-build",
+  "builds": [{ "src": "dist/api/index.js", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "dist/api/index.js" }]
 }

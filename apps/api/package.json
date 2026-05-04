@@ -2,6 +2,9 @@
   "name": "@org/api",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "vercel-build": "cd ../.. && pnpm nx run @org/api:build:production"
+  },
   "nx": {
     "targets": {
       "build": {
