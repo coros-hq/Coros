@@ -1,6 +1,7 @@
 {
   "version": 2,
   "buildCommand": "pnpm run vercel-build",
+  "outputDirectory": ".",
   "builds": [{ "src": "dist/api/index.js", "use": "@vercel/node" }],
   "routes": [{ "src": "/(.*)", "dest": "dist/api/index.js" }]
 }
