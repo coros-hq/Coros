@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './src/app/app.module';
+import { AppModule } from '../src/app/app.module';
 import serverlessExpress from '@vendia/serverless-express';
 
 let server: any;
