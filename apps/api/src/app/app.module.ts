@@ -80,19 +80,22 @@ import { AnnouncementRead } from '../announcement/entities/announcement-read.ent
         const devDefaults = !isProd;
         return {
           type: 'postgres' as const,
-          host:
-            configService.get<string>('POSTGRES_HOST') ??
-            (devDefaults ? 'localhost' : undefined),
-          port: Number(configService.get<number>('POSTGRES_PORT')) || 5432,
-          username:
-            configService.get<string>('POSTGRES_USER') ??
-            (devDefaults ? 'coros' : undefined),
-          password:
-            configService.get<string>('POSTGRES_PASSWORD') ??
-            (devDefaults ? 'password' : undefined),
-          database:
-            configService.get<string>('POSTGRES_DB') ??
-            (devDefaults ? 'coros_db' : undefined),
+          // host:
+          //   configService.get<string>('POSTGRES_HOST') ??
+          //   (devDefaults ? 'localhost' : undefined),
+          // port: Number(configService.get<number>('POSTGRES_PORT')) || 5432,
+          // username:
+          //   configService.get<string>('POSTGRES_USER') ??
+          //   (devDefaults ? 'coros' : undefined),
+          // password:
+          //   configService.get<string>('POSTGRES_PASSWORD') ??
+          //   (devDefaults ? 'password' : undefined),
+          // database:
+          //   configService.get<string>('POSTGRES_DB') ??
+          //   (devDefaults ? 'coros_db' : undefined),
+          url: configService.get<string>('DATABASE_URL') ??
+            (devDefaults ? 'postgresql://coros:password@localhost:5432/coros_db' : undefined),
+          ssl: { rejectUnauthorized: false }, // required for Neon
           entities: [
             User,
             Organization,
@@ -115,7 +118,7 @@ import { AnnouncementRead } from '../announcement/entities/announcement-read.ent
             Announcement,
             AnnouncementRead,
           ],
-          synchronize: true,
+          synchronize: process.env.NODE_ENV !== 'production',
         };
       },
     }),
@@ -133,4 +136,4 @@ import { AnnouncementRead } from '../announcement/entities/announcement-read.ent
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
